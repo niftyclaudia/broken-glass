@@ -1102,6 +1102,15 @@ function startCut(plan) {
   knife.u = plan.u.slice();
   const s = worldToScreen([0, 0, 0]), s2 = worldToScreen(knife.u);
   if (s2[0] < s[0]) knife.u = scale(knife.u, -1);
+  plan.u = knife.u.slice();
+  // put the heel just past the near edge of the cake, so the handle stays outside it
+  let amin = Infinity;
+  for (const tg of plan.targets) {
+    const x = tg.old.sim.x;
+    for (let i = 0; i < x.length; i += 3) amin = Math.min(amin, (x[i] - plan.A[0]) * plan.u[0] + (x[i + 2] - plan.A[2]) * plan.u[2]);
+  }
+  const along = amin - 0.06 - KX0;
+  plan.mid = [plan.A[0] + plan.u[0] * along, 0, plan.A[2] + plan.u[2] * along];
 }
 function startStamp(plan) {
   anim = { kind: 'stamp', t: 0, plan, fromBy: cutter.by, swapped: false, popped: false };
@@ -1146,9 +1155,10 @@ function applyColliders() {
       for (const tg of p.targets) {
         const x = tg.old.sim.x;
         for (let i = 0; i < x.length; i += 3) {
-          if (x[i + 1] <= ey) continue;
           const rx = x[i] - M[0], rz = x[i + 2] - M[2], d = Math.abs(rx * n[0] + rz * n[2]), a = rx * u[0] + rz * u[2];
-          if (d < 0.07 && Math.abs(a) < 1.9) { const f = d / 0.07; x[i + 1] = ey + (x[i + 1] - ey) * f * f; }
+          const e = ey + edgeAt(a);
+          if (x[i + 1] <= e) continue;
+          if (d < 0.07 && a > KX0 - 0.02 && a < KX1) { const f = d / 0.07; x[i + 1] = e + (x[i + 1] - e) * f * f; }
         }
       }
     } else {
@@ -1156,9 +1166,9 @@ function applyColliders() {
       for (const tg of p.targets) for (const np of tg.news) {
         const x = np.sim.x, side = np.side;
         for (let i = 0; i < x.length; i += 3) {
-          if (x[i + 1] < ey - 0.01) continue;
           const rx = x[i] - M[0], rz = x[i + 2] - M[2], a = rx * u[0] + rz * u[2];
-          if (Math.abs(a) > 1.9) continue;
+          if (a < KX0 - 0.02 || a > KX1) continue;
+          if (x[i + 1] < ey + edgeAt(a) - 0.01) continue;
           const sd = side * (rx * n[0] + rz * n[2]);
           if (sd < gap) { const push = (gap - sd) * 0.6 * side; x[i] += n[0] * push; x[i + 2] += n[2] * push; }
         }
@@ -1287,26 +1297,53 @@ function smoothNormals(V, I) {
   }
   for (let v = 0; v < nv; v++) { const n = norm([acc[3 * v], acc[3 * v + 1], acc[3 * v + 2]]); V[10 * v + 3] = n[0]; V[10 * v + 4] = n[1]; V[10 * v + 5] = n[2]; }
 }
-function tube(V, I, x0, x1, cy, ry, rz, col, mat, seg = 20) {
+function tube(V, I, x0, x1, cy, ry, rz, col, mat, seg = 20) { // along x, with radial normals
   const base = V.length / 10;
-  for (const x of [x0, x1]) for (let k = 0; k < seg; k++) { const a = k / seg * Math.PI * 2; V.push(x, cy + Math.sin(a) * ry, Math.cos(a) * rz, 0, 0, 0, ...col, mat); }
+  for (const x of [x0, x1]) for (let k = 0; k < seg; k++) {
+    const a = k / seg * Math.PI * 2, n = norm([0, Math.sin(a) / ry, Math.cos(a) / rz]);
+    V.push(x, cy + Math.sin(a) * ry, Math.cos(a) * rz, ...n, ...col, mat);
+  }
   for (let k = 0; k < seg; k++) { const a = base + k, b = base + (k + 1) % seg; I.push(a, b, b + seg, a, b + seg, a + seg); }
-  for (const [x, off, flip] of [[x0, 0, true], [x1, seg, false]]) {
-    const c = V.length / 10; V.push(x, cy, 0, 0, 0, 0, ...col, mat);
-    for (let k = 0; k < seg; k++) { const a = base + off + k, b = base + off + (k + 1) % seg; flip ? I.push(c, b, a) : I.push(c, a, b); }
+  for (const [x, off, sx] of [[x0, 0, -1], [x1, seg, 1]]) {
+    const c = V.length / 10; V.push(x, cy, 0, sx, 0, 0, ...col, mat);
+    for (let k = 0; k < seg; k++) {
+      const a = base + off + k, b = base + off + (k + 1) % seg;
+      const r = V.length / 10; V.push(V[10 * a], V[10 * a + 1], V[10 * a + 2], sx, 0, 0, ...col, mat, V[10 * b], V[10 * b + 1], V[10 * b + 2], sx, 0, 0, ...col, mat);
+      I.push(c, r, r + 1);
+    }
   }
 }
+function box(V, I, x0, x1, y0, y1, z0, z1, col, mat) { // flat-shaded box
+  const faces = [
+    [[1, 0, 0], [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]]], [[-1, 0, 0], [[x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [x0, y0, z0]]],
+    [[0, 1, 0], [[x0, y1, z0], [x0, y1, z1], [x1, y1, z1], [x1, y1, z0]]], [[0, -1, 0], [[x0, y0, z1], [x0, y0, z0], [x1, y0, z0], [x1, y0, z1]]],
+    [[0, 0, 1], [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]], [[0, 0, -1], [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]]],
+  ];
+  for (const [n, q] of faces) { const b = V.length / 10; for (const p of q) V.push(...p, ...n, ...col, mat); I.push(b, b + 1, b + 2, b, b + 2, b + 3); }
+}
+function disc(V, I, cx, cy, z, r, nz, col, mat, seg = 14) { // flat round cap facing ±z (rivet heads)
+  const c = V.length / 10; V.push(cx, cy, z, 0, 0, nz, ...col, mat);
+  for (let k = 0; k < seg; k++) { const a = k / seg * Math.PI * 2; V.push(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z, 0, 0, nz, ...col, mat); }
+  for (let k = 0; k < seg; k++) { const a = c + 1 + k, b = c + 1 + (k + 1) % seg; nz > 0 ? I.push(c, a, b) : I.push(c, b, a); }
+}
+// A chef's knife: tall heel tapering to a point with a curved belly, steel bolster, mint handle with three rivets.
+// Local frame: x along the blade (heel at KX0, tip at KX1), y up from the edge, z across the blade.
+const KX0 = -1.1, KX1 = 1.3, KH = 0.5, HANDLE_Y = 0.32, KTIP = 0.36;
+const knifeSpine = t => t < 0.72 ? KH : KH - (KH - KTIP) * Math.pow((t - 0.72) / 0.28, 2);
+const knifeEdge = t => t < 0.35 ? 0 : KTIP * Math.pow((t - 0.35) / 0.65, 2.2);
+const edgeAt = a => knifeEdge(clamp((a - KX0) / (KX1 - KX0), 0, 1)); // edge height above the heel, along the blade
 function knifeMesh() {
   const V = [], I = [], steel = [0.6, 0.61, 0.63];
-  const top = x => x < 1.25 ? 1.0 : 1.0 - 0.88 * Math.pow((x - 1.25) / 0.66, 2);
-  const th = y => 0.0015 + 0.011 * Math.min(1, y / 0.28);
-  const NX = 44, NY = 8, X0 = -1.9, X1 = 1.9;
-  const colsBase = [];
+  const spine = knifeSpine, edge = knifeEdge;
+  const NX = 48, NY = 7, colsBase = [];
   for (const side of [1, -1]) {
     const base = V.length / 10; colsBase.push(base);
     for (let i = 0; i <= NX; i++) {
-      const x = X0 + (X1 - X0) * i / NX;
-      for (let j = 0; j <= NY; j++) { const y = top(x) * j / NY; V.push(x, y, side * th(y), 0, 0, side, ...steel, 0); }
+      const t = i / NX, x = KX0 + (KX1 - KX0) * t, e = edge(t), sp = spine(t), taper = (sp - e) / KH;
+      for (let j = 0; j <= NY; j++) {
+        const y = e + (sp - e) * j / NY, th = (0.0012 + 0.009 * Math.min(1, (y - e) / 0.18)) * (0.4 + 0.6 * taper);
+        V.push(x, y, side * th, 0, 0, side, ...steel, 0);
+      }
     }
     for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++) {
       const a = base + i * (NY + 1) + j, b = a + NY + 1, c = b + 1, d = a + 1;
@@ -1318,16 +1355,12 @@ function knifeMesh() {
     const ft = f + i * (NY + 1) + NY, bt = b + i * (NY + 1) + NY; I.push(ft, bt, bt + NY + 1, ft, bt + NY + 1, ft + NY + 1);
     const fe = f + i * (NY + 1), be = b + i * (NY + 1); I.push(fe, fe + NY + 1, be + NY + 1, fe, be + NY + 1, be);
   }
-  for (let j = 0; j < NY; j++) { const a = f + j, c = b + j; I.push(a, c, c + 1, a, c + 1, a + 1); }
+  for (let j = 0; j < NY; j++) { const a = f + j, c = b + j; I.push(a, c, c + 1, a, c + 1, a + 1); } // heel
   smoothNormals(V, I);
-  const handle = hexLin('#7FB5AE'), brass = [0.72, 0.7, 0.66];
-  tube(V, I, -1.99, -1.9, 0.86, 0.12, 0.085, brass, 2);
-  tube(V, I, -2.95, -1.99, 0.86, 0.105, 0.075, handle, 1);
-  // tubes: smooth radial normals
-  for (let v = 0; v < V.length / 10; v++) if (V[10 * v + 9] > 0.5) {
-    const ny = V[10 * v + 1] - 0.86, nz = V[10 * v + 2], l = Math.hypot(ny, nz);
-    if (l > 1e-4) { V[10 * v + 3] = 0; V[10 * v + 4] = ny / l; V[10 * v + 5] = nz / l; } else { V[10 * v + 3] = V[10 * v] < -2.4 ? -1 : 1; }
-  }
+  const mint = hexLin('#BFE3CF'), rivet = [0.06, 0.06, 0.065];
+  tube(V, I, KX0 - 0.1, KX0 + 0.02, HANDLE_Y, 0.115, 0.06, steel, 2);          // bolster
+  tube(V, I, KX0 - 1.02, KX0 - 0.1, HANDLE_Y, 0.1, 0.052, mint, 1);            // handle
+  for (const x of [KX0 - 0.26, KX0 - 0.56, KX0 - 0.86]) for (const nz of [1, -1]) disc(V, I, x, HANDLE_Y, nz * 0.0535, 0.026, nz, rivet, 2);
   return { V: new Float32Array(V), I: new Uint32Array(I) };
 }
 function cutterMesh(k) {
