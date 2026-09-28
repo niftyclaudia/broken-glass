@@ -1,0 +1,2184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broken Glass</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect x=%222%22 y=%225%22 width=%2212%22 height=%228%22 rx=%221.5%22 fill=%22%23F6F0E4%22 stroke=%22%231E1B18%22/%3E%3Crect x=%224%22 y=%227%22 width=%223%22 height=%223%22 fill=%22%23C8102E%22/%3E%3Crect x=%229%22 y=%228%22 width=%223%22 height=%223%22 fill=%22%231F6FD1%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEEAE0; --ink:#1E1B18; --line:#1E1B18; --muted:#6B655C;
+    --tab:#D9533B; --pill:#5E8C8A;
+    --serif:"Instrument Serif","Big Caslon",Georgia,serif;
+    --body:"Iowan Old Style","Palatino","Times New Roman",serif;
+    --grot:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.7,0,.2,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  .screens{height:200dvh;transition:transform .9s var(--ease)}
+  body.ws .screens{transform:translateY(-100dvh)}
+  section.screen{height:100dvh;position:relative;overflow:hidden}
+
+  /* ── Screen 1: loading → hero ── */
+  .hero{padding:0 16px}
+  .title{font-family:var(--serif);font-weight:400;line-height:.92;white-space:nowrap;letter-spacing:-.015em;
+         display:inline-block;margin-top:28px;transform-origin:50% 50%;filter:url(#grain);
+         transition:transform 1.2s var(--ease)}
+  .status{position:absolute;left:16px;right:16px;top:calc(50% + 7vw);text-align:center;font-family:var(--serif);
+          font-style:italic;font-size:19px;color:var(--muted);transition:opacity .4s}
+  .status small{display:block;max-width:460px;margin:10px auto 0;font-family:var(--body);font-style:normal;font-size:14px;line-height:1.5}
+  .intro{display:grid;grid-template-columns:1.6fr 1fr;gap:40px;padding:9vh 12px 0;align-items:start}
+  .intro p{font-size:16px;line-height:1.6;max-width:620px}
+  .intro p b{font-family:var(--grot);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+  .caption{font-family:var(--serif);font-style:italic;font-size:24px;line-height:1.3;text-align:right}
+  .fade{opacity:0;transform:translateY(10px);transition:opacity .8s .9s,transform .8s .9s var(--ease)}
+  .cta{position:absolute;left:50%;bottom:34px;transform:translate(-50%,10px);display:flex;flex-direction:column;align-items:center;gap:6px;
+       font-family:var(--serif);font-style:italic;font-size:22px;padding:8px 16px}
+  .cta span{font-style:normal;font-size:20px;animation:bob 2.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+  body.loaded .fade{opacity:1;transform:none}
+  body.loaded .cta{transform:translate(-50%,0)}
+  body.loaded .status{opacity:0}
+
+  /* ── Screen 2: workspace ── */
+  .work{display:grid;grid-template-columns:1fr 420px}
+  .stage{position:relative;overflow:hidden;user-select:none;-webkit-user-select:none}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+  .stage[data-tool="hand"] canvas{cursor:grab}
+  .stage[data-tool="hand"].grabbing canvas{cursor:grabbing}
+  .stage[data-tool="cutter"] canvas{cursor:pointer}
+  #strokeSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .back{position:absolute;top:18px;left:22px;font-family:var(--serif);font-style:italic;font-size:20px;z-index:2}
+  .badge{position:absolute;top:18px;right:22px;background:var(--pill);color:#fff;font-family:var(--grot);
+         font-weight:600;font-size:12px;padding:5px 11px;border-radius:99px;z-index:2;pointer-events:none}
+  .hint{position:absolute;left:22px;bottom:18px;font-family:var(--serif);font-style:italic;font-size:21px;pointer-events:none;z-index:2}
+  .toast{position:absolute;left:50%;top:22px;transform:translate(-50%,-6px);font-family:var(--serif);font-style:italic;font-size:19px;
+         background:var(--paper);padding:4px 12px;border-radius:99px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:3}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .stage-msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:40px;z-index:4;background:var(--paper)}
+  .stage-msg div{max-width:420px}
+  .stage-msg b{display:block;font-family:var(--serif);font-weight:400;font-size:34px;margin-bottom:10px}
+  .stage-msg p{font-size:15px;line-height:1.55;color:var(--muted)}
+  body.nogpu .stage-msg{display:flex}
+  body.nogpu .panel{opacity:.45;pointer-events:none}
+
+  .panel{border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}
+  .tabs{display:flex;gap:8px;padding:22px 22px 0;border-bottom:1px solid var(--line);flex-shrink:0}
+  .tab{flex:1;text-align:left;padding:9px 14px 7px;font-size:17px;border:1px solid var(--line);border-bottom:0;
+       border-radius:12px 12px 0 0;margin-bottom:-1px;background:var(--paper)}
+  .tab.on{background:var(--tab);border-color:var(--tab);color:#fff}
+  .tab kbd{font-family:var(--mono);font-size:10px;opacity:.6;margin-left:6px}
+  .cell{padding:20px 22px;border-bottom:1px solid var(--line)}
+  .head h2{font-family:var(--serif);font-weight:400;font-size:40px;line-height:1}
+  .head i{font-size:15px;color:var(--muted)}
+  .label{font-family:var(--grot);font-weight:700;font-size:14px;margin-bottom:12px;display:flex;justify-content:space-between}
+  .label span{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted)}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ink);border-radius:99px;
+        padding:6px 12px;font-family:var(--grot);font-size:12px;font-weight:500;min-height:30px}
+  .pill.on{background:var(--ink);color:var(--paper)}
+  .pill svg{width:14px;height:14px}
+  .tag{border-color:#8f887d;color:#4a453f;padding:3px 10px;font-size:11px;cursor:pointer;min-height:26px}
+  .tag input{display:none}
+  .tag:has(input:checked){background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  #shapes{transition:opacity .3s}
+  #shapes.dim{opacity:.35}
+  .flav{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .card{text-align:left}
+  .card svg{border:1px solid var(--ink);border-radius:6px;width:100%;aspect-ratio:1;display:block;margin-bottom:8px}
+  .card.on svg{outline:2px solid var(--tab);outline-offset:2px}
+  .card b{font-family:var(--grot);font-size:13px;display:block}
+  .card i{font-size:13px;color:var(--muted)}
+  .slider{margin-bottom:14px}.slider:last-child{margin-bottom:0}
+  .slider .t{font-size:15px;margin-bottom:4px}
+  .ends{display:flex;justify-content:space-between;font-style:italic;font-size:13px;color:var(--muted);margin-top:2px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--paper);border:1px solid var(--ink);margin-top:-7px}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--paper);border:1px solid var(--ink)}
+  .spec{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  .spec td{padding:9px 0;border-bottom:1px solid #cfc8bb}
+  .spec tr:last-child td{border-bottom:0}
+  .spec td:last-child{text-align:right;font-family:var(--grot);font-weight:700;font-size:18px}
+  .spec td:first-child{text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .foot{margin-top:auto;padding:16px 22px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .foot b{color:var(--ink);font-weight:500}
+  .foot details{margin-top:10px}
+  .foot summary{cursor:pointer;list-style:none;color:var(--ink)}
+  .foot summary::-webkit-details-marker{display:none}
+  .foot details[open] summary .plus{display:inline-block;transform:rotate(45deg)}
+  .notes{font-family:var(--body);font-size:13.5px;line-height:1.55;color:var(--ink);margin-top:10px}
+  .notes p{margin-bottom:8px}
+  .notes em{font-family:var(--serif);font-size:16px}
+  .notes .fn{color:var(--muted);font-size:12px}
+
+  @media (max-width:860px){
+    .intro{grid-template-columns:1fr;gap:14px}
+    .caption{text-align:left}
+    .work{grid-template-columns:1fr;grid-template-rows:50dvh 1fr}
+    .panel{border-left:0;border-top:1px solid var(--line)}
+    .tab{padding:12px 12px 10px}
+    .tab kbd,.label span,.foot > div:first-child{display:none}
+    .pill{min-height:38px}
+    .hint{font-size:17px;right:22px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .title{transition:transform .01s!important}
+    .screens{transition:opacity .01s!important}
+    .fade,.cta{transition-duration:.3s!important;transition-delay:0s!important}
+    .cta span{animation:none}
+  }
+</style>
+</head>
+<body class="loading">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="4" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.45" result="mask"/>
+    <feComposite in="SourceGraphic" in2="mask" operator="in"/>
+  </filter>
+</svg>
+
+<div class="screens">
+  <!-- Screen 1: loading → hero -->
+  <section class="screen hero" id="hero">
+    <h1 class="title" id="title">Broken Glass.</h1>
+    <div class="status" id="status">Setting the jello…</div>
+    <div class="intro fade">
+      <p><b>Broken Glass</b> is a study of the potluck classic: cubes of cherry, lime, orange and berry-blue jello set in a creamy condensed-milk layer on a graham-cracker crust. Grab it and it wobbles. Slice it and every cut face becomes a new mosaic. Stamp it with a Jiggler cutter and lift the shape right out.</p>
+      <div class="caption">Stained glass you can eat.<br>Wobbly on purpose.<br>A potluck favourite, circa ’96.</div>
+    </div>
+    <button class="cta fade" id="cta">Get cooking<span>↓</span></button>
+  </section>
+
+  <!-- Screen 2: workspace -->
+  <section class="screen work" id="work">
+    <div class="stage" id="stage" data-tool="knife">
+      <canvas id="gl"></canvas>
+      <svg id="strokeSvg"><polyline id="strokeLine" fill="none" stroke="#1E1B18" stroke-width="1.5" stroke-dasharray="6 6" stroke-linecap="round" points=""/></svg>
+      <button class="back" id="back">↑ Broken Glass</button>
+      <div class="badge" id="badge">WebGPU · Live</div>
+      <div class="toast" id="toast"></div>
+      <div class="hint" id="hint">Drag across the cake to slice it.</div>
+      <div class="stage-msg" id="stageMsg"><div><b>This cake needs WebGPU.</b><p id="stageMsgText"></p></div></div>
+    </div>
+
+    <aside class="panel">
+      <nav class="tabs" id="tabs">
+        <button class="tab" data-t="hand">Hand<kbd>H</kbd></button>
+        <button class="tab on" data-t="knife">Knife<kbd>K</kbd></button>
+        <button class="tab" data-t="cutter">Cutter<kbd>C</kbd></button>
+      </nav>
+
+      <div class="cell head">
+        <h2 id="flavName">Classic</h2>
+        <i id="flavCream">Condensed milk</i>
+      </div>
+
+      <div class="cell dim" id="shapes">
+        <div class="label">Cutter shape <span>1–4</span></div>
+        <div class="pills" id="shapePills">
+          <button class="pill on" data-s="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z"/></svg>Star</button>
+          <button class="pill" data-s="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.2 4.2 0 0112 7.6 4.2 4.2 0 0119.5 10c0 5.4-7.5 10-7.5 10z"/></svg>Heart</button>
+          <button class="pill" data-s="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 17c2-1 3-4 5-5s6-1 8-3 2-5 4-5 1 3-1 4-1 4-1 6v4h-2v-3h-4v3H9v-3l-3 1-3 1z"/></svg>Dino</button>
+          <button class="pill" data-s="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13 2L5 13h6l-1 9 8-11h-6z"/></svg>Bolt</button>
+        </div>
+      </div>
+
+      <div class="cell">
+        <div class="label">Flavour</div>
+        <div class="flav" id="flav"></div>
+      </div>
+
+      <div class="cell">
+        <div class="label">Feel</div>
+        <div class="slider"><div class="t">Firmness</div><input type="range" id="firm" min="0" max="100" value="45" aria-label="Firmness"><div class="ends"><span>wiggly</span><span>set</span></div></div>
+        <div class="slider"><div class="t">Internal damping</div><input type="range" id="damp" min="0" max="100" value="35" aria-label="Internal damping"><div class="ends"><span>bouncy</span><span>syrupy</span></div></div>
+      </div>
+
+      <div class="cell">
+        <table class="spec">
+          <tr><td>Pieces</td><td id="rPieces">1</td></tr>
+          <tr><td>Cubes exposed</td><td id="rCubes">0</td></tr>
+        </table>
+      </div>
+
+      <div class="cell">
+        <div class="pills">
+          <button class="pill" id="bNudge">Give it a nudge</button><button class="pill" id="bReset">Reset</button><button class="pill" id="bPause">Pause</button>
+          <label class="pill tag"><input type="checkbox" id="cQuarter">¼ speed</label>
+          <label class="pill tag"><input type="checkbox" id="cMesh">Show mesh</label>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div><b>Space</b> pause · <b>N</b> nudge · <b>R</b> reset · <b>1–4</b> shapes</div>
+        <details>
+          <summary>Inside the experiment <span class="plus">+</span></summary>
+          <div class="notes">
+            <p><em>Physics.</em> The cake is a soft body made of small tetrahedra. Each step, every tetrahedron is pulled back toward its resting shape, rotated to match how it has turned, so the jello wobbles instead of stretching like rubber. The crust is stiffer than the cream, and the cubes ride along inside.</p>
+            <p><em>Cutting.</em> Every piece is stored as a flat distance field (a grid of “how far am I from the edge” values). A knife stroke becomes a vertical plane; each piece it crosses is split along that plane in its own resting frame, the corners are softened, and each separate part becomes a new piece that inherits the old one’s motion.</p>
+            <p><em>Jiggler cutters.</em> Each cutter is a rounded outline that uses the same distance field, so the ring and the hole it leaves always match. Stamping splits a flat piece into the part inside the wall and the part outside it.</p>
+            <p><em>Rendering.</em> Each pixel of jello marches a ray through the cake’s resting shape: the cream scatters light like milk, the cubes absorb colour like stained glass, and whatever sits behind shows through, bent a little.</p>
+            <p><em>The dessert.</em> Broken glass cake folds cubes of several jello flavours into a creamy base. It’s also called stained glass, crown jewel or cathedral window dessert, and gelatina mosaico in Mexico. It dates from 1950s Jell-O recipes and was a potluck staple for decades.</p>
+            <p class="fn">Illustrative scale: the simulation isn’t tuned to real gelatin.</p>
+          </div>
+        </details>
+      </div>
+    </aside>
+  </section>
+</div>
+
+<script type="module">
+/* ════════════════════════════════════════════════════════════════════
+   Broken Glass — a WebGPU jello cake you can wobble, slice and stamp.
+   Physics runs on the CPU (co-rotational tet shape matching); rendering
+   is WebGPU + WGSL with a rest-space raymarch through the cake.
+   ════════════════════════════════════════════════════════════════════ */
+
+const $ = s => document.querySelector(s);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeIn = t => t * t;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+let seedR = 11;
+const rnd = () => (seedR = (seedR * 16807) % 2147483647) / 2147483647;
+const srgbToLin = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+const hexLin = h => [1, 3, 5].map(i => srgbToLin(parseInt(h.slice(i, i + 2), 16) / 255));
+// yields a frame; falls back to a timer so loading also finishes in a background tab
+const nextFrame = () => new Promise(r => { let done = false; const f = () => { if (!done) { done = true; r(); } }; requestAnimationFrame(f); setTimeout(f, 60); });
+
+// ─── Constants ────────────────────────────────────────────────────────
+const TOP = 0.9, CRUST = 0.15;
+const PG = { n: 144, cell: 0.02, o: -1.44 };      // piece distance grids (rest xz)
+const CGS = { n: 140, cell: 0.01, o: -0.7 };      // cutter distance grids (shape uv)
+const MAX_PIECES = 14;
+const ROUND_R = 0.04, KERF = 0.012, WALL = 0.012;
+const MIN_AREA = 0.02, MIN_SPLIT = 0.035;
+const SIM_H = 0.2, LEVELS = [0, 0.3, 0.6, 0.9];
+const RENDER_H = 0.07, RIM_DS = 0.035;
+const WALL_YS = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9];
+const GRAV = 14, DT = 1 / 60, ITER = 3;
+
+const FLAVOURS = {
+  classic:  { name: 'Classic',  cream: 'Condensed milk', cubes: ['#C8102E', '#5DAA2F', '#F07F1A', '#1F6FD1'], base: '#F6F0E4', crust: '#B98A55', tags: 'Cherry · Lime · Orange · Berry blue' },
+  tropical: { name: 'Tropical', cream: 'Coconut',        cubes: ['#F2B61E', '#E86A92', '#F07A1A', '#F7D84A'], base: '#F8F4EC', crust: '#C49A63', tags: 'Pineapple · Strawberry · Mango' },
+  berry:    { name: 'Berry',    cream: 'Vanilla',        cubes: ['#B0174F', '#6A2C8C', '#2F7FD8', '#6E0F2B'], base: '#F5EEDB', crust: '#A97E4E', tags: 'Raspberry · Grape · Blue raspberry · Black cherry' },
+};
+const HINTS = {
+  hand: 'Grab the cake and give it a wobble.',
+  knife: 'Drag across the cake to slice it.',
+  cutter: 'Click a flat piece to stamp a shape.',
+};
+const SHAPE_COLORS = ['#E9D38A', '#E7A9B4', '#A9C98F', '#B7A6D6'];
+
+// ─── Distance-field grids ─────────────────────────────────────────────
+function bil(s, n, fx, fz) {
+  const i = fx | 0, j = fz | 0, tx = fx - i, tz = fz - j, k = j * n + i;
+  return (s[k] * (1 - tx) + s[k + 1] * tx) * (1 - tz) + (s[k + n] * (1 - tx) + s[k + n + 1] * tx) * tz;
+}
+function sampleGrid(s, gs, x, z) {
+  const n = gs.n;
+  const fx = (x - gs.o) / gs.cell - 0.5, fz = (z - gs.o) / gs.cell - 0.5;
+  const cx = clamp(fx, 0, n - 1.0001), cz = clamp(fz, 0, n - 1.0001);
+  const extra = (cx !== fx || cz !== fz) ? Math.hypot(fx - cx, fz - cz) * gs.cell : 0;
+  return bil(s, n, cx, cz) + extra;
+}
+function gradGrid(s, gs, x, z) {
+  const h = gs.cell;
+  return [(sampleGrid(s, gs, x + h, z) - sampleGrid(s, gs, x - h, z)) / (2 * h),
+          (sampleGrid(s, gs, x, z + h) - sampleGrid(s, gs, x, z - h)) / (2 * h)];
+}
+
+// Exact Euclidean distance transform (Felzenszwalb & Huttenlocher).
+const INF = 1e20;
+function edt1d(f, n, d, v, z) {
+  let k = 0; v[0] = 0; z[0] = -INF; z[1] = INF;
+  for (let q = 1; q < n; q++) {
+    let s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+    while (s <= z[k]) { k--; s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); }
+    k++; v[k] = q; z[k] = s; z[k + 1] = INF;
+  }
+  k = 0;
+  for (let q = 0; q < n; q++) { while (z[k + 1] < q) k++; d[q] = (q - v[k]) * (q - v[k]) + f[v[k]]; }
+}
+function edt(mask, n, want) {
+  const N = n * n, out = new Float64Array(N);
+  let any = false;
+  for (let i = 0; i < N; i++) { if (mask[i] === want) { out[i] = 0; any = true; } else out[i] = INF; }
+  if (!any) return out;
+  const f = new Float64Array(n), d = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1);
+  for (let x = 0; x < n; x++) {
+    for (let y = 0; y < n; y++) f[y] = out[y * n + x];
+    edt1d(f, n, d, v, z);
+    for (let y = 0; y < n; y++) out[y * n + x] = d[y];
+  }
+  for (let y = 0; y < n; y++) {
+    const r = y * n;
+    for (let x = 0; x < n; x++) f[x] = out[r + x];
+    edt1d(f, n, d, v, z);
+    for (let x = 0; x < n; x++) out[r + x] = d[x];
+  }
+  return out;
+}
+function signedFromMask(m, gs) {
+  const n = gs.n, N = n * n, dIn = edt(m, n, 1), dOut = edt(m, n, 0), s = new Float32Array(N);
+  for (let i = 0; i < N; i++) s[i] = m[i] ? -(Math.sqrt(dOut[i]) - 0.5) * gs.cell : (Math.sqrt(dIn[i]) - 0.5) * gs.cell;
+  return s;
+}
+// Morphological closing then opening: every corner gets the same radius.
+function roundSDF(sdf, gs, r) {
+  const N = gs.n * gs.n, m = new Uint8Array(N);
+  let s = sdf;
+  const pass = lim => { for (let i = 0; i < N; i++) m[i] = s[i] < lim ? 1 : 0; s = signedFromMask(m, gs); };
+  pass(r); pass(-r); pass(-r); pass(r);
+  return s;
+}
+function components(sdf, gs) {
+  const n = gs.n, N = n * n, lab = new Int32Array(N).fill(-1), stack = new Int32Array(N), out = [];
+  for (let i = 0; i < N; i++) {
+    if (sdf[i] >= 0 || lab[i] >= 0) continue;
+    const id = out.length, mask = new Uint8Array(N);
+    let sp = 0, area = 0; stack[sp++] = i; lab[i] = id;
+    while (sp) {
+      const k = stack[--sp]; mask[k] = 1; area++;
+      const x = k % n, y = (k / n) | 0;
+      if (x > 0 && lab[k - 1] < 0 && sdf[k - 1] < 0) { lab[k - 1] = id; stack[sp++] = k - 1; }
+      if (x < n - 1 && lab[k + 1] < 0 && sdf[k + 1] < 0) { lab[k + 1] = id; stack[sp++] = k + 1; }
+      if (y > 0 && lab[k - n] < 0 && sdf[k - n] < 0) { lab[k - n] = id; stack[sp++] = k - n; }
+      if (y < n - 1 && lab[k + n] < 0 && sdf[k + n] < 0) { lab[k + n] = id; stack[sp++] = k + n; }
+    }
+    out.push({ mask, area: area * gs.cell * gs.cell });
+  }
+  return out;
+}
+
+// Marching squares → closed loops of [x, z].
+function contours(s, gs) {
+  const n = gs.n, adj = new Map(), pts = new Map();
+  const node = (i, j) => s[j * n + i];
+  const P = i => gs.o + (i + 0.5) * gs.cell;
+  const ep = id => {
+    if (pts.has(id)) return;
+    const k = id >> 1, i = k % n, j = (k / n) | 0;
+    if ((id & 1) === 0) { const a = node(i, j), b = node(i + 1, j); pts.set(id, [P(i) + a / (a - b) * gs.cell, P(j)]); }
+    else { const a = node(i, j), b = node(i, j + 1); pts.set(id, [P(i), P(j) + a / (a - b) * gs.cell]); }
+  };
+  const link = (a, b) => {
+    ep(a); ep(b);
+    if (!adj.has(a)) adj.set(a, []); if (!adj.has(b)) adj.set(b, []);
+    adj.get(a).push(b); adj.get(b).push(a);
+  };
+  for (let j = 0; j < n - 1; j++) for (let i = 0; i < n - 1; i++) {
+    const a = node(i, j), b = node(i + 1, j), c = node(i + 1, j + 1), d = node(i, j + 1);
+    const code = (a < 0 ? 1 : 0) | (b < 0 ? 2 : 0) | (c < 0 ? 4 : 0) | (d < 0 ? 8 : 0);
+    if (code === 0 || code === 15) continue;
+    const e0 = (j * n + i) * 2, e1 = (j * n + i + 1) * 2 + 1, e2 = ((j + 1) * n + i) * 2, e3 = (j * n + i) * 2 + 1;
+    const ctr = (a + b + c + d) / 4;
+    switch (code) {
+      case 1: link(e3, e0); break; case 2: link(e0, e1); break; case 3: link(e3, e1); break;
+      case 4: link(e1, e2); break; case 6: link(e0, e2); break; case 7: link(e3, e2); break;
+      case 8: link(e2, e3); break; case 9: link(e0, e2); break; case 11: link(e1, e2); break;
+      case 12: link(e1, e3); break; case 13: link(e0, e1); break; case 14: link(e3, e0); break;
+      case 5: if (ctr < 0) { link(e0, e1); link(e2, e3); } else { link(e3, e0); link(e1, e2); } break;
+      case 10: if (ctr < 0) { link(e3, e0); link(e1, e2); } else { link(e0, e1); link(e2, e3); } break;
+    }
+  }
+  const seen = new Set(), loops = [];
+  for (const start of adj.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let prev = -1, cur = start;
+    while (cur !== undefined && !seen.has(cur)) {
+      seen.add(cur); loop.push(pts.get(cur));
+      const nb = adj.get(cur), next = nb[0] !== prev ? nb[0] : nb[1];
+      prev = cur; cur = next;
+    }
+    if (loop.length >= 4) loops.push(loop);
+  }
+  return loops;
+}
+// Resample, smooth, snap back to the zero set, orient (outward = right of travel), attach normals.
+function refineLoop(loop, s, gs, ds) {
+  const m = loop.length, cum = [0];
+  let L = 0;
+  for (let k = 0; k < m; k++) { const a = loop[k], b = loop[(k + 1) % m]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); cum.push(L); }
+  const cnt = Math.max(6, Math.round(L / ds));
+  let out = [], seg = 0;
+  for (let q = 0; q < cnt; q++) {
+    const t = q * L / cnt;
+    while (seg < m - 1 && cum[seg + 1] < t) seg++;
+    const a = loop[seg], b = loop[(seg + 1) % m], f = (t - cum[seg]) / ((cum[seg + 1] - cum[seg]) || 1);
+    out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+  }
+  for (let it = 0; it < 2; it++) {
+    out = out.map((p, k) => {
+      const a = out[(k + cnt - 1) % cnt], b = out[(k + 1) % cnt];
+      return [0.5 * p[0] + 0.25 * (a[0] + b[0]), 0.5 * p[1] + 0.25 * (a[1] + b[1])];
+    });
+  }
+  for (let it = 0; it < 3; it++) for (const p of out) {
+    const d = sampleGrid(s, gs, p[0], p[1]), g = gradGrid(s, gs, p[0], p[1]), gl = g[0] * g[0] + g[1] * g[1];
+    if (gl > 1e-6) { p[0] -= d * g[0] / gl; p[1] -= d * g[1] / gl; }
+  }
+  let vote = 0;
+  for (let k = 0; k < cnt; k++) {
+    const a = out[k], b = out[(k + 1) % cnt], g = gradGrid(s, gs, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+    vote += (b[1] - a[1]) * g[0] - (b[0] - a[0]) * g[1];
+  }
+  if (vote < 0) out.reverse();
+  return out.map(p => {
+    const g = gradGrid(s, gs, p[0], p[1]), l = Math.hypot(g[0], g[1]) || 1;
+    return [p[0], p[1], g[0] / l, g[1] / l];
+  });
+}
+
+// Bowyer–Watson Delaunay triangulation of 2D points (determinant in-circle test).
+function delaunay(P) {
+  const n = P.length;
+  if (n < 3) return [];
+  const xs = new Float64Array(n + 3), zs = new Float64Array(n + 3);
+  let minx = Infinity, minz = Infinity, maxx = -Infinity, maxz = -Infinity;
+  for (let i = 0; i < n; i++) {
+    xs[i] = P[i][0] + (rnd() - 0.5) * 2e-5; zs[i] = P[i][1] + (rnd() - 0.5) * 2e-5;
+    minx = Math.min(minx, xs[i]); maxx = Math.max(maxx, xs[i]); minz = Math.min(minz, zs[i]); maxz = Math.max(maxz, zs[i]);
+  }
+  const d = Math.max(maxx - minx, maxz - minz, 0.1) * 10, mx = (minx + maxx) / 2, mz = (minz + maxz) / 2;
+  xs[n] = mx - d; zs[n] = mz - d; xs[n + 1] = mx + d; zs[n + 1] = mz - d; xs[n + 2] = mx; zs[n + 2] = mz + d;
+  const mk = (a, b, c) => { // store counter-clockwise, with a bounding circle for a cheap reject
+    const o = (xs[b] - xs[a]) * (zs[c] - zs[a]) - (zs[b] - zs[a]) * (xs[c] - xs[a]);
+    if (o < 0) { const t = b; b = c; c = t; }
+    const ax = xs[a], az = zs[a], bx = xs[b], bz = zs[b], cx = xs[c], cz = zs[c];
+    const D = 2 * (ax * (bz - cz) + bx * (cz - az) + cx * (az - bz));
+    let ux = (ax + bx + cx) / 3, uz = (az + bz + cz) / 3, r2 = Infinity;
+    if (Math.abs(D) > 1e-12) {
+      const a2 = ax * ax + az * az, b2 = bx * bx + bz * bz, c2 = cx * cx + cz * cz;
+      ux = (a2 * (bz - cz) + b2 * (cz - az) + c2 * (az - bz)) / D; uz = (a2 * (cx - bx) + b2 * (ax - cx) + c2 * (bx - ax)) / D;
+      r2 = ((ax - ux) ** 2 + (az - uz) ** 2) * 1.0001 + 1e-9;
+    }
+    return { a, b, c, x: ux, z: uz, r2 };
+  };
+  const inCircle = (t, px, pz) => {
+    const adx = xs[t.a] - px, adz = zs[t.a] - pz, bdx = xs[t.b] - px, bdz = zs[t.b] - pz, cdx = xs[t.c] - px, cdz = zs[t.c] - pz;
+    return (adx * adx + adz * adz) * (bdx * cdz - cdx * bdz) - (bdx * bdx + bdz * bdz) * (adx * cdz - cdx * adz) + (cdx * cdx + cdz * cdz) * (adx * bdz - bdx * adz) > 0;
+  };
+  let tris = [mk(n, n + 1, n + 2)];
+  for (let i = 0; i < n; i++) {
+    const px = xs[i], pz = zs[i], keep = [], edges = new Map();
+    const add = (u, v) => { const k = u < v ? u * 100000 + v : v * 100000 + u; const e = edges.get(k); if (e) e.c++; else edges.set(k, { u, v, c: 1 }); };
+    for (const t of tris) {
+      const dx = px - t.x, dz = pz - t.z;
+      if (dx * dx + dz * dz <= t.r2 && inCircle(t, px, pz)) { add(t.a, t.b); add(t.b, t.c); add(t.c, t.a); } else keep.push(t);
+    }
+    for (const e of edges.values()) if (e.c === 1) keep.push(mk(e.u, e.v, i));
+    tris = keep;
+  }
+  return tris.filter(t => t.a < n && t.b < n && t.c < n).map(t => [t.a, t.b, t.c]);
+}
+// rimNext[i] = index of the next point on the same outline loop (or -1): those edges are always kept
+function filterTris(tris, P, sdf, midTol, rimNext) {
+  const rim = (u, v) => rimNext && ((u < rimNext.length && rimNext[u] === v) || (v < rimNext.length && rimNext[v] === u));
+  const mid = (u, v) => rim(u, v) || sampleGrid(sdf, PG, (P[u][0] + P[v][0]) / 2, (P[u][1] + P[v][1]) / 2) <= midTol;
+  return tris.filter(([a, b, c]) => {
+    const A = P[a], B = P[b], C = P[c];
+    if (sampleGrid(sdf, PG, (A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3) > Math.min(midTol, 0.006)) return false;
+    if (!mid(a, b) || !mid(b, c) || !mid(c, a)) return false;
+    return Math.abs((B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])) > 1e-7;
+  });
+}
+
+// ─── Soft-body construction ───────────────────────────────────────────
+const BS = 0.2, BN = 16, BO = -1.6;
+function buildSim(sdf, loopsRaw) {
+  const P = [];
+  for (let z = -1.3; z <= 1.3001; z += SIM_H) for (let x = -1.3; x <= 1.3001; x += SIM_H)
+    if (sampleGrid(sdf, PG, x, z) < -SIM_H * 0.5) P.push([x, z]);
+  for (const l of loopsRaw) {
+    const r = refineLoop(l, sdf, PG, 0.09);
+    for (const p of r) P.push([p[0] - p[2] * 0.012, p[1] - p[3] * 0.012]);
+  }
+  const tris = filterTris(delaunay(P), P, sdf, 0.07);
+  if (!tris.length) return null;
+  const remap = new Int32Array(P.length).fill(-1), pts = [];
+  for (const t of tris) for (let k = 0; k < 3; k++) if (remap[t[k]] < 0) { remap[t[k]] = pts.length; pts.push(P[t[k]]); }
+  const np = pts.length, NL = LEVELS.length, n = np * NL;
+  const rest = new Float32Array(3 * n);
+  for (let l = 0; l < NL; l++) for (let k = 0; k < np; k++) {
+    const i = (l * np + k) * 3; rest[i] = pts[k][0]; rest[i + 1] = LEVELS[l]; rest[i + 2] = pts[k][1];
+  }
+  const tl = [];
+  for (const t of tris) {
+    const [a, b, c] = t.map(i => remap[i]).sort((x, y) => x - y);
+    for (let l = 0; l < NL - 1; l++) {
+      const o0 = l * np, o1 = (l + 1) * np;
+      tl.push([a + o0, b + o0, c + o0, c + o1], [a + o0, b + o0, b + o1, c + o1], [a + o0, a + o1, b + o1, c + o1]);
+    }
+  }
+  const tets = [], tetRest = [], tetInv = [], tetK = [];
+  const cnt = new Float32Array(n);
+  for (const T of tl) {
+    const p = T.map(i => [rest[3 * i], rest[3 * i + 1], rest[3 * i + 2]]);
+    const e1 = sub(p[1], p[0]), e2 = sub(p[2], p[0]), e3 = sub(p[3], p[0]);
+    const det = dot(e1, cross(e2, e3));
+    if (Math.abs(det) < 1e-6) continue;
+    const inv = inv3cols(e1, e2, e3);
+    const c = [0, 1, 2].map(k => (p[0][k] + p[1][k] + p[2][k] + p[3][k]) / 4);
+    tets.push(...T);
+    for (const q of p) tetRest.push(q[0] - c[0], q[1] - c[1], q[2] - c[2]);
+    tetInv.push(...inv);
+    tetK.push(c[1] < 0.3 ? 1 : 0);
+    for (const i of T) cnt[i]++;
+  }
+  const m = tets.length / 4;
+  if (!m) return null;
+  const invCnt = new Float32Array(n);
+  for (let i = 0; i < n; i++) invCnt[i] = cnt[i] ? 1 / cnt[i] : 0;
+  const tetQ = new Float64Array(4 * m);
+  for (let t = 0; t < m; t++) tetQ[4 * t + 3] = 1;
+  const sim = {
+    n, m, rest, tets: new Uint32Array(tets), tetRest: new Float32Array(tetRest), tetInv: new Float32Array(tetInv),
+    tetK: new Uint8Array(tetK), tetQ, invCnt,
+    x: new Float32Array(rest), xp: new Float32Array(rest), v: new Float32Array(3 * n), dx: new Float32Array(3 * n),
+  };
+  // bucket tets by 2D rest bbox for point location
+  sim.bucket = Array.from({ length: BN * BN }, () => []);
+  for (let t = 0; t < m; t++) {
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (let k = 0; k < 4; k++) { const i = sim.tets[4 * t + k] * 3; x0 = Math.min(x0, rest[i]); x1 = Math.max(x1, rest[i]); z0 = Math.min(z0, rest[i + 2]); z1 = Math.max(z1, rest[i + 2]); }
+    x0 -= 0.05; x1 += 0.05; z0 -= 0.05; z1 += 0.05; // padded so rim points find their neighbours
+    for (let bz = clamp(Math.floor((z0 - BO) / BS), 0, BN - 1); bz <= clamp(Math.floor((z1 - BO) / BS), 0, BN - 1); bz++)
+      for (let bx = clamp(Math.floor((x0 - BO) / BS), 0, BN - 1); bx <= clamp(Math.floor((x1 - BO) / BS), 0, BN - 1); bx++)
+        sim.bucket[bz * BN + bx].push(t);
+  }
+  return sim;
+}
+function findTet(sim, X, Y, Z) {
+  let best = -1, bestS = -Infinity;
+  const bw = [0, 0, 0, 0];
+  const scan = list => {
+    for (const t of list) {
+      const i0 = sim.tets[4 * t] * 3, I = sim.tetInv, o = 9 * t;
+      const dx = X - sim.rest[i0], dy = Y - sim.rest[i0 + 1], dz = Z - sim.rest[i0 + 2];
+      const w1 = I[o] * dx + I[o + 1] * dy + I[o + 2] * dz;
+      const w2 = I[o + 3] * dx + I[o + 4] * dy + I[o + 5] * dz;
+      const w3 = I[o + 6] * dx + I[o + 7] * dy + I[o + 8] * dz;
+      const w0 = 1 - w1 - w2 - w3, s = Math.min(w0, w1, w2, w3);
+      if (s > bestS) { bestS = s; best = t; bw[0] = w0; bw[1] = w1; bw[2] = w2; bw[3] = w3; }
+    }
+  };
+  const bx = clamp(Math.floor((X - BO) / BS), 0, BN - 1), bz = clamp(Math.floor((Z - BO) / BS), 0, BN - 1);
+  scan(sim.bucket[bz * BN + bx]);
+  // points just outside the soft body (the rim) are fine with a nearby tet; only search wider when far off
+  if (bestS < -0.6) {
+    for (let r = 1; r <= 3 && bestS < -0.6; r++)
+      for (let j = bz - r; j <= bz + r; j++) for (let i = bx - r; i <= bx + r; i++)
+        if (i >= 0 && j >= 0 && i < BN && j < BN && (Math.abs(i - bx) === r || Math.abs(j - bz) === r)) scan(sim.bucket[j * BN + i]);
+  }
+  if (best < 0) { const all = []; for (let t = 0; t < sim.m; t++) all.push(t); scan(all); }
+  if (bestS < 0) { // outside every tet: choose the one whose clamped projection is nearest
+    let bd = Infinity;
+    for (const t of sim.bucket[bz * BN + bx]) {
+      const i0 = sim.tets[4 * t] * 3, I = sim.tetInv, o = 9 * t;
+      const dx = X - sim.rest[i0], dy = Y - sim.rest[i0 + 1], dz = Z - sim.rest[i0 + 2];
+      const w = [0, I[o] * dx + I[o + 1] * dy + I[o + 2] * dz, I[o + 3] * dx + I[o + 4] * dy + I[o + 5] * dz, I[o + 6] * dx + I[o + 7] * dy + I[o + 8] * dz];
+      w[0] = 1 - w[1] - w[2] - w[3];
+      let sum = 0; for (let k = 0; k < 4; k++) { w[k] = Math.max(0, w[k]); sum += w[k]; }
+      let px = 0, py = 0, pz = 0;
+      for (let k = 0; k < 4; k++) { const j = sim.tets[4 * t + k] * 3; px += w[k] * sim.rest[j]; py += w[k] * sim.rest[j + 1]; pz += w[k] * sim.rest[j + 2]; }
+      const d = (px / sum - X) ** 2 + (py / sum - Y) ** 2 + (pz / sum - Z) ** 2;
+      if (d < bd) { bd = d; best = t; }
+    }
+    const i0 = sim.tets[4 * best] * 3, I = sim.tetInv, o = 9 * best;
+    const dx = X - sim.rest[i0], dy = Y - sim.rest[i0 + 1], dz = Z - sim.rest[i0 + 2];
+    bw[1] = I[o] * dx + I[o + 1] * dy + I[o + 2] * dz; bw[2] = I[o + 3] * dx + I[o + 4] * dy + I[o + 5] * dz; bw[3] = I[o + 6] * dx + I[o + 7] * dy + I[o + 8] * dz;
+    bw[0] = 1 - bw[1] - bw[2] - bw[3];
+  }
+  // project into the tet; the remainder is a small offset carried in the tet's rotating frame
+  const s = bw.map(w => Math.max(0, w)), sum = s[0] + s[1] + s[2] + s[3] || 1;
+  const w = s.map(v => v / sum), o = [X, Y, Z];
+  for (let k = 0; k < 4; k++) { const i = sim.tets[4 * best + k] * 3; o[0] -= w[k] * sim.rest[i]; o[1] -= w[k] * sim.rest[i + 1]; o[2] -= w[k] * sim.rest[i + 2]; }
+  return { t: best, w, o };
+}
+function embedPos(sim, e, xs, out, Rtmp) { // position of an embedded point; the offset turns with the piece
+  let px = 0, py = 0, pz = 0;
+  for (let k = 0; k < 4; k++) { const j = sim.tets[4 * e.t + k] * 3; px += e.w[k] * xs[j]; py += e.w[k] * xs[j + 1]; pz += e.w[k] * xs[j + 2]; }
+  const o = e.o;
+  out[0] = px + Rtmp[0] * o[0] + Rtmp[3] * o[1] + Rtmp[6] * o[2];
+  out[1] = py + Rtmp[1] * o[0] + Rtmp[4] * o[1] + Rtmp[7] * o[2];
+  out[2] = pz + Rtmp[2] * o[0] + Rtmp[5] * o[1] + Rtmp[8] * o[2];
+}
+
+function buildRender(sdf, loops, sim) {
+  const V = [], I = [];
+  const P = [], rimNext = [];
+  for (const l of loops) { const o = P.length; l.forEach((p, k) => { P.push([p[0], p[1]]); rimNext.push(o + (k + 1) % l.length); }); }
+  for (let z = -1.36; z <= 1.36; z += RENDER_H) for (let x = -1.36; x <= 1.36; x += RENDER_H)
+    if (sampleGrid(sdf, PG, x, z) < -RENDER_H * 0.6) P.push([x, z]);
+  const tris = filterTris(delaunay(P), P, sdf, 0.006, rimNext);
+  const topBase = 0;
+  for (const p of P) V.push(p[0], TOP, p[1], 0, 1, 0);
+  const botBase = P.length;
+  for (const p of P) V.push(p[0], 0, p[1], 0, -1, 0);
+  for (const [a, b, c] of tris) { I.push(topBase + a, topBase + b, topBase + c); I.push(botBase + a, botBase + b, botBase + c); }
+  for (const l of loops) {
+    const base = V.length / 6, m = l.length, R = WALL_YS.length;
+    for (const y of WALL_YS) for (const p of l) V.push(p[0], y, p[1], p[2], 0, p[3]);
+    for (let r = 0; r < R - 1; r++) for (let k = 0; k < m; k++) {
+      const a = base + r * m + k, b = base + r * m + (k + 1) % m, c = a + m, d = b + m;
+      I.push(a, b, d, a, d, c);
+    }
+  }
+  // fix winding so geometric normals point outward
+  for (let t = 0; t < I.length; t += 3) {
+    const a = I[t] * 6, b = I[t + 1] * 6, c = I[t + 2] * 6;
+    const n = cross([V[b] - V[a], V[b + 1] - V[a + 1], V[b + 2] - V[a + 2]], [V[c] - V[a], V[c + 1] - V[a + 1], V[c + 2] - V[a + 2]]);
+    const want = [V[a + 3] + V[b + 3] + V[c + 3], V[a + 4] + V[b + 4] + V[c + 4], V[a + 5] + V[b + 5] + V[c + 5]];
+    if (dot(n, want) < 0) { const tmp = I[t + 1]; I[t + 1] = I[t + 2]; I[t + 2] = tmp; }
+  }
+  const nv = V.length / 6, rest = new Float32Array(3 * nv), et = new Int32Array(nv), ew = new Float32Array(4 * nv), eo = new Float32Array(3 * nv);
+  for (let v = 0; v < nv; v++) {
+    rest[3 * v] = V[6 * v]; rest[3 * v + 1] = V[6 * v + 1]; rest[3 * v + 2] = V[6 * v + 2];
+    const f = findTet(sim, V[6 * v], V[6 * v + 1], V[6 * v + 2]);
+    et[v] = f.t; ew.set(f.w, 4 * v); eo.set(f.o, 3 * v);
+  }
+  return { nv, rest, idx: new Uint32Array(I), et, ew, eo };
+}
+
+let pieceSerial = 0;
+function makePiece(sdf) {
+  const raw = contours(sdf, PG);
+  if (!raw.length) return null;
+  const loops = raw.map(l => refineLoop(l, sdf, PG, RIM_DS)).filter(l => l.length >= 6);
+  if (!loops.length) return null;
+  const sim = buildSim(sdf, raw);
+  if (!sim) return null;
+  const rend = buildRender(sdf, loops, sim);
+  let area = 0;
+  for (let i = 0; i < sdf.length; i++) if (sdf[i] < 0) area++;
+  const C = [0, 0, 0];
+  for (let i = 0; i < sim.n; i++) { C[0] += sim.rest[3 * i]; C[1] += sim.rest[3 * i + 1]; C[2] += sim.rest[3 * i + 2]; }
+  C[0] /= sim.n; C[1] /= sim.n; C[2] /= sim.n;
+  const restOff = new Float32Array(3 * sim.n);
+  for (let i = 0; i < sim.n; i++) for (let k = 0; k < 3; k++) restOff[3 * i + k] = sim.rest[3 * i + k] - C[k];
+  return {
+    id: ++pieceSerial, sdf, loops, sim, rend, area: area * PG.cell * PG.cell, slot: -1, side: 0,
+    C, restOff, c: C.slice(), R: [1, 0, 0, 0, 1, 0, 0, 0, 1], q: new Float64Array([0, 0, 0, 1]),
+    wv: new Float32Array(3 * rend.nv), wn: new Float32Array(3 * rend.nv),
+  };
+}
+
+// ─── Small vector / matrix helpers ────────────────────────────────────
+function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+function scale(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
+function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function norm(a) { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+function inv3cols(c0, c1, c2) { // inverse of matrix with columns c0,c1,c2 → row-major 9
+  const a = c0[0], b = c1[0], c = c2[0], d = c0[1], e = c1[1], f = c2[1], g = c0[2], h = c1[2], i = c2[2];
+  const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g, det = a * A + b * B + c * C;
+  const id = 1 / det;
+  return [A * id, -(b * i - c * h) * id, (b * f - c * e) * id,
+          B * id, (a * i - c * g) * id, -(a * f - c * d) * id,
+          C * id, -(a * h - b * g) * id, (a * e - b * d) * id];
+}
+// R is column-major 3x3
+const mulR = (R, v) => [R[0] * v[0] + R[3] * v[1] + R[6] * v[2], R[1] * v[0] + R[4] * v[1] + R[7] * v[2], R[2] * v[0] + R[5] * v[1] + R[8] * v[2]];
+const mulRT = (R, v) => [R[0] * v[0] + R[1] * v[1] + R[2] * v[2], R[3] * v[0] + R[4] * v[1] + R[5] * v[2], R[6] * v[0] + R[7] * v[1] + R[8] * v[2]];
+const worldToRest = (pc, w) => add(mulRT(pc.R, sub(w, pc.c)), pc.C);
+const restToWorld = (pc, X) => add(mulR(pc.R, sub(X, pc.C)), pc.c);
+
+function perspective(fovy, aspect, n, f) {
+  const t = 1 / Math.tan(fovy / 2);
+  return new Float32Array([t / aspect, 0, 0, 0, 0, t, 0, 0, 0, 0, f / (n - f), -1, 0, 0, n * f / (n - f), 0]);
+}
+function lookAt(e, c) {
+  const z = norm(sub(e, c)), x = norm(cross([0, 1, 0], z)), y = cross(z, x);
+  return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1]);
+}
+function mul4(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) {
+    let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s;
+  }
+  return o;
+}
+function inv4(m) {
+  const o = new Float32Array(16);
+  const [a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33] = m;
+  const b00 = a00 * a11 - a01 * a10, b01 = a00 * a12 - a02 * a10, b02 = a00 * a13 - a03 * a10, b03 = a01 * a12 - a02 * a11;
+  const b04 = a01 * a13 - a03 * a11, b05 = a02 * a13 - a03 * a12, b06 = a20 * a31 - a21 * a30, b07 = a20 * a32 - a22 * a30;
+  const b08 = a20 * a33 - a23 * a30, b09 = a21 * a32 - a22 * a31, b10 = a21 * a33 - a23 * a31, b11 = a22 * a33 - a23 * a32;
+  const det = 1 / (b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06);
+  o[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det; o[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+  o[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det; o[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+  o[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det; o[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+  o[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det; o[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+  o[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det; o[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+  o[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det; o[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+  o[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det; o[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+  o[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det; o[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+  return o;
+}
+function tp(m, p) {
+  const x = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], y = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13];
+  const z = m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14], w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
+  return [x / w, y / w, z / w];
+}
+
+// Rotation extraction (Müller et al. 2016), warm-started quaternion.
+function extractRotation(A, q, o, iters) {
+  for (let it = 0; it < iters; it++) {
+    const x = q[o], y = q[o + 1], z = q[o + 2], w = q[o + 3];
+    const r00 = 1 - 2 * (y * y + z * z), r10 = 2 * (x * y + z * w), r20 = 2 * (x * z - y * w);
+    const r01 = 2 * (x * y - z * w), r11 = 1 - 2 * (x * x + z * z), r21 = 2 * (y * z + x * w);
+    const r02 = 2 * (x * z + y * w), r12 = 2 * (y * z - x * w), r22 = 1 - 2 * (x * x + y * y);
+    let ox = (r10 * A[2] - r20 * A[1]) + (r11 * A[5] - r21 * A[4]) + (r12 * A[8] - r22 * A[7]);
+    let oy = (r20 * A[0] - r00 * A[2]) + (r21 * A[3] - r01 * A[5]) + (r22 * A[6] - r02 * A[8]);
+    let oz = (r00 * A[1] - r10 * A[0]) + (r01 * A[4] - r11 * A[3]) + (r02 * A[7] - r12 * A[6]);
+    const den = Math.abs(r00 * A[0] + r10 * A[1] + r20 * A[2] + r01 * A[3] + r11 * A[4] + r21 * A[5] + r02 * A[6] + r12 * A[7] + r22 * A[8]) + 1e-9;
+    ox /= den; oy /= den; oz /= den;
+    const wl = Math.hypot(ox, oy, oz);
+    if (wl < 1e-9) break;
+    const s = Math.sin(wl / 2) / wl, dx = ox * s, dy = oy * s, dz = oz * s, dw = Math.cos(wl / 2);
+    let nx = dw * x + dx * w + dy * z - dz * y, ny = dw * y - dx * z + dy * w + dz * x;
+    let nz = dw * z + dx * y - dy * x + dz * w, nw = dw * w - dx * x - dy * y - dz * z;
+    const l = Math.hypot(nx, ny, nz, nw) || 1;
+    q[o] = nx / l; q[o + 1] = ny / l; q[o + 2] = nz / l; q[o + 3] = nw / l;
+  }
+}
+function quatToR(q, o, R) {
+  const x = q[o], y = q[o + 1], z = q[o + 2], w = q[o + 3];
+  R[0] = 1 - 2 * (y * y + z * z); R[1] = 2 * (x * y + z * w); R[2] = 2 * (x * z - y * w);
+  R[3] = 2 * (x * y - z * w); R[4] = 1 - 2 * (x * x + z * z); R[5] = 2 * (y * z + x * w);
+  R[6] = 2 * (x * z + y * w); R[7] = 2 * (y * z - x * w); R[8] = 1 - 2 * (x * x + y * y);
+}
+
+// ─── Cubes (the stained glass) ────────────────────────────────────────
+const cubes = [];
+function makeCubes() {
+  seedR = 20241996;
+  let tries = 0;
+  while (cubes.length < 64 && tries++ < 20000) {
+    const h = 0.09 + rnd() * 0.055;
+    const c = [(rnd() * 2 - 1) * 1.34, 0.27 + rnd() * 0.6, (rnd() * 2 - 1) * 1.34];
+    if (cubes.some(k => Math.hypot(k.c[0] - c[0], k.c[1] - c[1], k.c[2] - c[2]) < (k.h + h) * 1.25)) continue;
+    // random rotation
+    const u1 = rnd(), u2 = rnd(), u3 = rnd();
+    const q = [Math.sqrt(1 - u1) * Math.sin(2 * Math.PI * u2), Math.sqrt(1 - u1) * Math.cos(2 * Math.PI * u2), Math.sqrt(u1) * Math.sin(2 * Math.PI * u3), Math.sqrt(u1) * Math.cos(2 * Math.PI * u3)];
+    const M = new Float32Array(9); quatToR(q, 0, M);
+    cubes.push({ c, h, M, col: cubes.length % 4 });
+  }
+}
+
+// ─── World state ──────────────────────────────────────────────────────
+let pieces = [];
+const slots = new Array(MAX_PIECES).fill(null);
+const ui = { tool: 'knife', shape: 0, flavour: 'classic', firm: 0.45, damp: 0.35, paused: false, quarter: false, mesh: false };
+const cam = { yaw: 0.52, pitch: 0.62, dist: 8.6, t: [0, 0.3, 0], fov: 30 * Math.PI / 180 };
+let anim = null, grab = null, cutterParked = null, hover = null;
+let knife = { M: [0, 1.2, 0], u: [1, 0, 0], show: false };
+let cutter = { P: [0, 0, 0], by: 1.2, right: [1, 0, 0], fwd: [0, 0, -1], show: false };
+let simTime = 0;
+let geomDirty = true;
+
+function resetCake() {
+  for (let i = 0; i < MAX_PIECES; i++) slots[i] = null;
+  const sdf = new Float32Array(PG.n * PG.n);
+  for (let j = 0; j < PG.n; j++) for (let i = 0; i < PG.n; i++) {
+    const x = PG.o + (i + 0.5) * PG.cell, z = PG.o + (j + 0.5) * PG.cell, r = 0.14;
+    const qx = Math.abs(x) - (1.3 - r), qz = Math.abs(z) - (1.3 - r);
+    sdf[j * PG.n + i] = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - r;
+  }
+  const p = makePiece(sdf);
+  pieces = [p];
+  assignSlots();
+  anim = null; grab = null; cutterParked = null;
+  geomDirty = true;
+  updateReadouts();
+}
+function assignSlots() {
+  for (let i = 0; i < MAX_PIECES; i++) if (slots[i] && !pieces.includes(slots[i])) slots[i] = null;
+  for (const p of pieces) {
+    if (p.slot >= 0 && slots[p.slot] === p) continue;
+    p.slot = slots.indexOf(null); slots[p.slot] = p; p.sdfDirty = true;
+  }
+}
+
+// ─── Physics ──────────────────────────────────────────────────────────
+const Abuf = new Float64Array(9);
+function solveTets(pc, alpha, alphaCrust) {
+  const s = pc.sim, x = s.x, T = s.tets, TR = s.tetRest, Q = s.tetQ, K = s.tetK, dxa = s.dx, A = Abuf;
+  dxa.fill(0);
+  for (let t = 0; t < s.m; t++) {
+    const i0 = T[4 * t] * 3, i1 = T[4 * t + 1] * 3, i2 = T[4 * t + 2] * 3, i3 = T[4 * t + 3] * 3;
+    const cx = (x[i0] + x[i1] + x[i2] + x[i3]) * 0.25, cy = (x[i0 + 1] + x[i1 + 1] + x[i2 + 1] + x[i3 + 1]) * 0.25, cz = (x[i0 + 2] + x[i1 + 2] + x[i2 + 2] + x[i3 + 2]) * 0.25;
+    const p0x = x[i0] - cx, p0y = x[i0 + 1] - cy, p0z = x[i0 + 2] - cz;
+    const p1x = x[i1] - cx, p1y = x[i1 + 1] - cy, p1z = x[i1 + 2] - cz;
+    const p2x = x[i2] - cx, p2y = x[i2 + 1] - cy, p2z = x[i2 + 2] - cz;
+    const p3x = x[i3] - cx, p3y = x[i3 + 1] - cy, p3z = x[i3 + 2] - cz;
+    const r = 12 * t;
+    const r0x = TR[r], r0y = TR[r + 1], r0z = TR[r + 2], r1x = TR[r + 3], r1y = TR[r + 4], r1z = TR[r + 5];
+    const r2x = TR[r + 6], r2y = TR[r + 7], r2z = TR[r + 8], r3x = TR[r + 9], r3y = TR[r + 10], r3z = TR[r + 11];
+    A[0] = p0x * r0x + p1x * r1x + p2x * r2x + p3x * r3x; A[1] = p0y * r0x + p1y * r1x + p2y * r2x + p3y * r3x; A[2] = p0z * r0x + p1z * r1x + p2z * r2x + p3z * r3x;
+    A[3] = p0x * r0y + p1x * r1y + p2x * r2y + p3x * r3y; A[4] = p0y * r0y + p1y * r1y + p2y * r2y + p3y * r3y; A[5] = p0z * r0y + p1z * r1y + p2z * r2y + p3z * r3y;
+    A[6] = p0x * r0z + p1x * r1z + p2x * r2z + p3x * r3z; A[7] = p0y * r0z + p1y * r1z + p2y * r2z + p3y * r3z; A[8] = p0z * r0z + p1z * r1z + p2z * r2z + p3z * r3z;
+    extractRotation(A, Q, 4 * t, 2);
+    const qx = Q[4 * t], qy = Q[4 * t + 1], qz = Q[4 * t + 2], qw = Q[4 * t + 3];
+    const R0 = 1 - 2 * (qy * qy + qz * qz), R1 = 2 * (qx * qy + qz * qw), R2 = 2 * (qx * qz - qy * qw);
+    const R3 = 2 * (qx * qy - qz * qw), R4 = 1 - 2 * (qx * qx + qz * qz), R5 = 2 * (qy * qz + qx * qw);
+    const R6 = 2 * (qx * qz + qy * qw), R7 = 2 * (qy * qz - qx * qw), R8 = 1 - 2 * (qx * qx + qy * qy);
+    const a = K[t] ? alphaCrust : alpha;
+    dxa[i0] += a * (cx + R0 * r0x + R3 * r0y + R6 * r0z - x[i0]); dxa[i0 + 1] += a * (cy + R1 * r0x + R4 * r0y + R7 * r0z - x[i0 + 1]); dxa[i0 + 2] += a * (cz + R2 * r0x + R5 * r0y + R8 * r0z - x[i0 + 2]);
+    dxa[i1] += a * (cx + R0 * r1x + R3 * r1y + R6 * r1z - x[i1]); dxa[i1 + 1] += a * (cy + R1 * r1x + R4 * r1y + R7 * r1z - x[i1 + 1]); dxa[i1 + 2] += a * (cz + R2 * r1x + R5 * r1y + R8 * r1z - x[i1 + 2]);
+    dxa[i2] += a * (cx + R0 * r2x + R3 * r2y + R6 * r2z - x[i2]); dxa[i2 + 1] += a * (cy + R1 * r2x + R4 * r2y + R7 * r2z - x[i2 + 1]); dxa[i2 + 2] += a * (cz + R2 * r2x + R5 * r2y + R8 * r2z - x[i2 + 2]);
+    dxa[i3] += a * (cx + R0 * r3x + R3 * r3y + R6 * r3z - x[i3]); dxa[i3 + 1] += a * (cy + R1 * r3x + R4 * r3y + R7 * r3z - x[i3 + 1]); dxa[i3 + 2] += a * (cz + R2 * r3x + R5 * r3y + R8 * r3z - x[i3 + 2]);
+  }
+  const ic = s.invCnt;
+  for (let i = 0; i < s.n; i++) { const k = ic[i]; x[3 * i] += dxa[3 * i] * k; x[3 * i + 1] += dxa[3 * i + 1] * k; x[3 * i + 2] += dxa[3 * i + 2] * k; }
+}
+// Whole-piece shape matching: gives the rigid frame (c, R) and keeps big pieces from drifting.
+function solveGlobal(pc, alpha) {
+  const s = pc.sim, x = s.x, ro = pc.restOff, n = s.n, A = Abuf;
+  let cx = 0, cy = 0, cz = 0;
+  for (let i = 0; i < n; i++) { cx += x[3 * i]; cy += x[3 * i + 1]; cz += x[3 * i + 2]; }
+  cx /= n; cy /= n; cz /= n;
+  A.fill(0);
+  for (let i = 0; i < n; i++) {
+    const px = x[3 * i] - cx, py = x[3 * i + 1] - cy, pz = x[3 * i + 2] - cz, rx = ro[3 * i], ry = ro[3 * i + 1], rz = ro[3 * i + 2];
+    A[0] += px * rx; A[1] += py * rx; A[2] += pz * rx; A[3] += px * ry; A[4] += py * ry; A[5] += pz * ry; A[6] += px * rz; A[7] += py * rz; A[8] += pz * rz;
+  }
+  extractRotation(A, pc.q, 0, 3);
+  quatToR(pc.q, 0, pc.R);
+  pc.c[0] = cx; pc.c[1] = cy; pc.c[2] = cz;
+  if (alpha <= 0) return;
+  const R = pc.R;
+  for (let i = 0; i < n; i++) {
+    const rx = ro[3 * i], ry = ro[3 * i + 1], rz = ro[3 * i + 2];
+    x[3 * i] += alpha * (cx + R[0] * rx + R[3] * ry + R[6] * rz - x[3 * i]);
+    x[3 * i + 1] += alpha * (cy + R[1] * rx + R[4] * ry + R[7] * rz - x[3 * i + 1]);
+    x[3 * i + 2] += alpha * (cz + R[2] * rx + R[5] * ry + R[8] * rz - x[3 * i + 2]);
+  }
+}
+function floorContact(pc) {
+  const s = pc.sim, x = s.x, xp = s.xp;
+  for (let i = 0; i < s.n; i++) {
+    if (x[3 * i + 1] < 0) {
+      x[3 * i + 1] = 0;
+      // static-ish friction: cancel most of this step's sliding
+      x[3 * i] = xp[3 * i] + (x[3 * i] - xp[3 * i]) * 0.35;
+      x[3 * i + 2] = xp[3 * i + 2] + (x[3 * i + 2] - xp[3 * i + 2]) * 0.35;
+    }
+  }
+}
+// Pieces push each other apart (spatial hash, only between different pieces).
+const HASH_N = 8192, HC = 0.04;
+let hCount = new Int32Array(HASH_N + 1), hOrder = new Int32Array(1), hCell = new Int32Array(1), hPid = new Int32Array(1), hIdx = new Int32Array(1);
+const hkey = (ix, iy, iz) => (((ix * 73856093) ^ (iy * 19349663) ^ (iz * 83492791)) >>> 0) & (HASH_N - 1);
+function collidePieces() {
+  if (pieces.length < 2) return;
+  let N = 0; for (const p of pieces) N += p.sim.n;
+  if (hOrder.length < N) { hOrder = new Int32Array(N); hCell = new Int32Array(N); hPid = new Int32Array(N); hIdx = new Int32Array(N); }
+  hCount.fill(0);
+  let g = 0;
+  pieces.forEach((p, pi) => {
+    const x = p.sim.x;
+    for (let i = 0; i < p.sim.n; i++, g++) {
+      const h = hkey(Math.floor(x[3 * i] / HC), Math.floor(x[3 * i + 1] / HC), Math.floor(x[3 * i + 2] / HC));
+      hCell[g] = h; hPid[g] = pi; hIdx[g] = i; hCount[h + 1]++;
+    }
+  });
+  for (let i = 0; i < HASH_N; i++) hCount[i + 1] += hCount[i];
+  const fill = hCount.slice(0, HASH_N);
+  for (let i = 0; i < N; i++) hOrder[fill[hCell[i]]++] = i;
+  const r = HC, r2 = r * r;
+  for (let a = 0; a < N; a++) {
+    const pa = pieces[hPid[a]], xa = pa.sim.x, ia = 3 * hIdx[a];
+    const ix = Math.floor(xa[ia] / HC), iy = Math.floor(xa[ia + 1] / HC), iz = Math.floor(xa[ia + 2] / HC);
+    for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const h = hkey(ix + dx, iy + dy, iz + dz);
+      for (let k = hCount[h]; k < hCount[h + 1]; k++) {
+        const b = hOrder[k];
+        if (b <= a || hPid[b] === hPid[a]) continue;
+        const xb = pieces[hPid[b]].sim.x, ib = 3 * hIdx[b];
+        const ex = xb[ib] - xa[ia], ey = xb[ib + 1] - xa[ia + 1], ez = xb[ib + 2] - xa[ia + 2], d2 = ex * ex + ey * ey + ez * ez;
+        if (d2 >= r2 || d2 < 1e-12) continue;
+        const d = Math.sqrt(d2), push = Math.min(0.004, (r - d) * 0.5) / d;
+        xa[ia] -= ex * push; xa[ia + 1] -= ey * push; xa[ia + 2] -= ez * push;
+        xb[ib] += ex * push; xb[ib + 1] += ey * push; xb[ib + 2] += ez * push;
+      }
+    }
+  }
+}
+
+function applyGrab() {
+  if (!grab) return;
+  const x = grab.piece.sim.x, T = grab.target;
+  for (let k = 0; k < grab.ids.length; k++) {
+    const i = 3 * grab.ids[k], w = grab.w[k] * 0.3, o = grab.off[k];
+    x[i] += w * (T[0] + o[0] - x[i]); x[i + 1] += w * (T[1] + o[1] - x[i + 1]); x[i + 2] += w * (T[2] + o[2] - x[i + 2]);
+  }
+}
+
+function step() {
+  simTime += DT;
+  updateAnim(DT);
+  const f = ui.firm, alpha = 0.1 + 0.6 * f * f, alphaCrust = Math.min(0.9, alpha * 2.2 + 0.2), ag = 0.012 + 0.05 * f;
+  for (const pc of pieces) {
+    const s = pc.sim, x = s.x, xp = s.xp, v = s.v;
+    for (let i = 0; i < 3 * s.n; i += 3) {
+      xp[i] = x[i]; xp[i + 1] = x[i + 1]; xp[i + 2] = x[i + 2];
+      v[i + 1] -= GRAV * DT;
+      x[i] += v[i] * DT; x[i + 1] += v[i + 1] * DT; x[i + 2] += v[i + 2] * DT;
+    }
+  }
+  for (let it = 0; it < ITER; it++) {
+    for (const pc of pieces) { solveTets(pc, alpha, alphaCrust); solveGlobal(pc, ag); }
+    applyGrab();
+    applyColliders();
+    for (const pc of pieces) floorContact(pc);
+  }
+  collidePieces();
+  const dK = 0.02 + 0.16 * ui.damp;
+  for (const pc of pieces) {
+    const s = pc.sim, x = s.x, xp = s.xp, v = s.v, n = s.n;
+    let vx = 0, vy = 0, vz = 0, bad = false;
+    for (let i = 0; i < 3 * n; i += 3) {
+      v[i] = (x[i] - xp[i]) / DT; v[i + 1] = (x[i + 1] - xp[i + 1]) / DT; v[i + 2] = (x[i + 2] - xp[i + 2]) / DT;
+      vx += v[i]; vy += v[i + 1]; vz += v[i + 2];
+      if (!(Math.abs(x[i]) + Math.abs(x[i + 1]) + Math.abs(x[i + 2]) < 1e3)) bad = true;
+    }
+    if (bad) { // NaN guard: snap back to the rigid frame
+      for (let i = 0; i < n; i++) { const w = restToWorld(pc, [pc.sim.rest[3 * i], pc.sim.rest[3 * i + 1], pc.sim.rest[3 * i + 2]]); x.set(w.map(q => isFinite(q) ? q : 0), 3 * i); }
+      v.fill(0); pc.q.set([0, 0, 0, 1]); continue;
+    }
+    vx /= n; vy /= n; vz /= n;
+    let ke = 0;
+    for (let i = 0; i < 3 * n; i += 3) {
+      // damp the jiggle, keep the throw
+      v[i] = vx + (v[i] - vx) * (1 - dK); v[i + 1] = vy + (v[i + 1] - vy) * (1 - dK); v[i + 2] = vz + (v[i + 2] - vz) * (1 - dK);
+      const sp = Math.hypot(v[i], v[i + 1], v[i + 2]);
+      if (sp > 14) { v[i] *= 14 / sp; v[i + 1] *= 14 / sp; v[i + 2] *= 14 / sp; }
+      ke += sp * sp;
+    }
+    if (ke / n < 0.004 && (!grab || grab.piece !== pc)) for (let i = 0; i < 3 * n; i++) v[i] *= 0.9;
+  }
+}
+
+// ─── Cutting and stamping ─────────────────────────────────────────────
+function splitPiece(pc, f, gap) {
+  const n = PG.n, N = n * n, a = new Float32Array(N), b = new Float32Array(N);
+  let na = 0, nb = 0;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const k = j * n + i, X = PG.o + (i + 0.5) * PG.cell, Z = PG.o + (j + 0.5) * PG.cell, s = pc.sdf[k];
+    if (s > 0.3) { a[k] = s; b[k] = s; continue; }
+    const fv = f(X, Z);
+    a[k] = Math.max(s, fv + gap); b[k] = Math.max(s, -fv + gap);
+    if (a[k] < 0) na++; if (b[k] < 0) nb++;
+  }
+  const ca = PG.cell * PG.cell;
+  if (na * ca < 1e-3 || nb * ca < 1e-3) return null;
+  if (na * ca < MIN_SPLIT || nb * ca < MIN_SPLIT) return 'thin';
+  const out = [];
+  for (const [field, side] of [[a, -1], [b, 1]]) {
+    const r = roundSDF(field, PG, ROUND_R);
+    for (const comp of components(r, PG)) {
+      if (comp.area < MIN_AREA) continue;
+      const p = makePiece(signedFromMask(comp.mask, PG));
+      if (p) { p.side = side; out.push(p); }
+    }
+  }
+  return out.length ? out : 'thin';
+}
+function transferPlan(np, old) {
+  const s = np.sim, emb = [];
+  for (let i = 0; i < s.n; i++) emb.push(findTet(old.sim, s.rest[3 * i], s.rest[3 * i + 1], s.rest[3 * i + 2]));
+  np.emb = emb;
+}
+function applyTransfer(np, old) {
+  const s = np.sim, o = old.sim, pos = [0, 0, 0];
+  for (let i = 0; i < s.n; i++) {
+    const e = np.emb[i], { t, w } = e;
+    let vx = 0, vy = 0, vz = 0;
+    for (let k = 0; k < 4; k++) { const j = o.tets[4 * t + k] * 3; vx += w[k] * o.v[j]; vy += w[k] * o.v[j + 1]; vz += w[k] * o.v[j + 2]; }
+    embedPos(o, e, o.x, pos, old.R);
+    s.x.set(pos, 3 * i); s.xp.set(pos, 3 * i);
+    s.v[3 * i] = vx; s.v[3 * i + 1] = vy; s.v[3 * i + 2] = vz;
+  }
+  // start the new piece's rotation from the old one
+  np.q.set(old.q);
+  for (let t = 0; t < s.m; t++) s.tetQ.set(old.q, 4 * t);
+  solveGlobal(np, 0);
+  delete np.emb;
+}
+function finishPlan(targets, msgs) {
+  if (!targets.length) { toast(msgs.thin ? 'Too thin to cut there.' : msgs.flat || msgs.none); return null; }
+  const total = pieces.length - targets.length + targets.reduce((s, t) => s + t.news.length, 0);
+  if (total > MAX_PIECES) { toast('That’s plenty of pieces for the potluck.'); return null; }
+  for (const t of targets) for (const np of t.news) transferPlan(np, t.old);
+  return targets;
+}
+function planCut(A, B, crossed) {
+  const ux = B[0] - A[0], uz = B[2] - A[2], l = Math.hypot(ux, uz);
+  if (l < 0.04) return null;
+  const u = [ux / l, 0, uz / l], n = [-u[2], 0, u[0]];
+  const targets = [], msgs = { none: 'Draw across the cake to slice it.' };
+  for (const pc of crossed) {
+    const nr = mulRT(pc.R, n);
+    if (Math.abs(nr[1]) > 0.5) { msgs.flat = 'Lay that piece flat to cut it.'; continue; }
+    const nl = Math.hypot(nr[0], nr[2]), nx = nr[0] / nl, nz = nr[2] / nl;
+    const pr = worldToRest(pc, A), o = nx * pr[0] + nz * pr[2];
+    const res = splitPiece(pc, (X, Z) => nx * X + nz * Z - o, KERF);
+    if (res === 'thin') { msgs.thin = true; continue; }
+    if (res) targets.push({ old: pc, news: res });
+  }
+  const t = finishPlan(targets, msgs);
+  if (!t) return null;
+  let top = 0;
+  for (const tg of t) { const x = tg.old.sim.x; for (let i = 1; i < x.length; i += 3) top = Math.max(top, x[i]); }
+  return { kind: 'knife', targets: t, A, B, u, n, mid: [(A[0] + B[0]) / 2, 0, (A[2] + B[2]) / 2], top };
+}
+function cutterFrame() {
+  const yaw = cam.yaw;
+  return { right: [Math.cos(yaw), 0, -Math.sin(yaw)], fwd: [-Math.sin(yaw), 0, -Math.cos(yaw)] };
+}
+function planStamp(P, right, fwd) {
+  const sh = cutterShapes[ui.shape], targets = [], msgs = { none: 'Place the cutter over the cake.' };
+  for (const pc of pieces) {
+    const up = pc.R[4];
+    // is any particle under the ring?
+    let under = false;
+    const x = pc.sim.x;
+    for (let i = 0; i < x.length && !under; i += 3) {
+      const dx = x[i] - P[0], dz = x[i + 2] - P[2];
+      if (sampleGrid(sh.sdf, CGS, dx * right[0] + dz * right[2], dx * fwd[0] + dz * fwd[2]) < 0.02) under = true;
+    }
+    if (!under) continue;
+    if (Math.abs(up) < 0.85) { msgs.flat = 'As if! Lay that piece flat to stamp it.'; continue; }
+    const f = (X, Z) => {
+      const w = restToWorld(pc, [X, 0.45, Z]), dx = w[0] - P[0], dz = w[2] - P[2];
+      return sampleGrid(sh.sdf, CGS, dx * right[0] + dz * right[2], dx * fwd[0] + dz * fwd[2]);
+    };
+    const res = splitPiece(pc, f, WALL);
+    if (res === 'thin') { msgs.thin = true; continue; }
+    if (res) targets.push({ old: pc, news: res });
+  }
+  if (!targets.length && msgs.thin) msgs.thin = false, msgs.none = 'Place the cutter over the cake.';
+  const t = finishPlan(targets, msgs);
+  if (!t) return null;
+  let top = 0;
+  for (const tg of t) { const x = tg.old.sim.x; for (let i = 1; i < x.length; i += 3) top = Math.max(top, x[i]); }
+  return { kind: 'stamp', targets: t, P: [P[0], 0, P[2]], right, fwd, top, shape: ui.shape };
+}
+function doSwap(plan) {
+  for (const tg of plan.targets) {
+    const i = pieces.indexOf(tg.old);
+    if (i < 0) continue;
+    for (const np of tg.news) applyTransfer(np, tg.old);
+    pieces.splice(i, 1, ...tg.news);
+    if (grab && grab.piece === tg.old) endGrab();
+  }
+  assignSlots();
+  geomDirty = true;
+  updateReadouts();
+}
+
+// ─── Tool animations ──────────────────────────────────────────────────
+function startCut(plan) {
+  anim = { kind: 'knife', t: 0, plan, from: knife.M.slice(), swapped: false };
+  knife.u = plan.u.slice();
+  const s = worldToScreen([0, 0, 0]), s2 = worldToScreen(knife.u);
+  if (s2[0] < s[0]) knife.u = scale(knife.u, -1);
+}
+function startStamp(plan) {
+  anim = { kind: 'stamp', t: 0, plan, fromBy: cutter.by, swapped: false, popped: false };
+  cutter.P = plan.P.slice(); cutter.right = plan.right; cutter.fwd = plan.fwd;
+}
+function updateAnim(dt) {
+  if (!anim) return;
+  anim.t += dt;
+  const t = anim.t, p = anim.plan;
+  if (anim.kind === 'knife') {
+    const top = p.top, M = knife.M;
+    if (t < 0.18) {
+      const e = easeIO(t / 0.18);
+      M[0] = lerp(anim.from[0], p.mid[0], e); M[2] = lerp(anim.from[2], p.mid[2], e); M[1] = lerp(anim.from[1], top + 0.02, e);
+    } else if (t < 0.45) { M[0] = p.mid[0]; M[2] = p.mid[2]; M[1] = lerp(top + 0.02, top - 0.22, easeIn((t - 0.18) / 0.27)); }
+    else if (t < 0.75) M[1] = lerp(top - 0.22, -0.004, easeIO((t - 0.45) / 0.3));
+    else if (t < 1.1) M[1] = lerp(-0.004, top + 0.5, easeOut((t - 0.75) / 0.35));
+    if (t >= 0.45 && !anim.swapped) { anim.swapped = true; doSwap(p); }
+    if (t >= 1.1) { anim = null; knife.M[1] = top + 0.5; }
+  } else {
+    const top = p.top;
+    if (t < 0.15) cutter.by = lerp(anim.fromBy, top + 0.02, easeIO(t / 0.15));
+    else if (t < 0.4) cutter.by = lerp(top + 0.02, top - 0.18, easeIn((t - 0.15) / 0.25));
+    else if (t < 0.65) cutter.by = lerp(top - 0.18, -0.004, easeIO((t - 0.4) / 0.25));
+    else if (t < 0.95) cutter.by = lerp(-0.004, top + 0.6, easeOut((t - 0.65) / 0.3));
+    if (t >= 0.4 && !anim.swapped) { anim.swapped = true; doSwap(p); }
+    if (t >= 0.65 && !anim.popped) {
+      anim.popped = true;
+      for (const tg of p.targets) for (const np of tg.news) if (np.side < 0) { const v = np.sim.v; for (let i = 1; i < v.length; i += 3) v[i] += 0.55; }
+    }
+    if (t >= 0.95) { anim = null; cutterParked = { x: lastPointer.x, y: lastPointer.y }; }
+  }
+}
+function applyColliders() {
+  if (!anim) return;
+  const t = anim.t, p = anim.plan;
+  if (anim.kind === 'knife') {
+    const M = knife.M, n = p.n, u = p.u, ey = M[1];
+    const depth = clamp((p.top - ey) / Math.max(p.top, 0.1), 0, 1);
+    if (!anim.swapped) {
+      if (t < 0.18) return;
+      for (const tg of p.targets) {
+        const x = tg.old.sim.x;
+        for (let i = 0; i < x.length; i += 3) {
+          if (x[i + 1] <= ey) continue;
+          const rx = x[i] - M[0], rz = x[i + 2] - M[2], d = Math.abs(rx * n[0] + rz * n[2]), a = rx * u[0] + rz * u[2];
+          if (d < 0.07 && Math.abs(a) < 1.9) { const f = d / 0.07; x[i + 1] = ey + (x[i + 1] - ey) * f * f; }
+        }
+      }
+    } else {
+      const gap = 0.014 + 0.035 * depth;
+      for (const tg of p.targets) for (const np of tg.news) {
+        const x = np.sim.x, side = np.side;
+        for (let i = 0; i < x.length; i += 3) {
+          if (x[i + 1] < ey - 0.01) continue;
+          const rx = x[i] - M[0], rz = x[i + 2] - M[2], a = rx * u[0] + rz * u[2];
+          if (Math.abs(a) > 1.9) continue;
+          const sd = side * (rx * n[0] + rz * n[2]);
+          if (sd < gap) { const push = (gap - sd) * 0.6 * side; x[i] += n[0] * push; x[i + 2] += n[2] * push; }
+        }
+      }
+    }
+  } else {
+    const sh = cutterShapes[p.shape], by = cutter.by, P = p.P, rt = p.right, fw = p.fwd;
+    const depth = clamp((p.top - by) / Math.max(p.top, 0.1), 0, 1);
+    const local = (x, i) => { const dx = x[i] - P[0], dz = x[i + 2] - P[2]; return [dx * rt[0] + dz * rt[2], dx * fw[0] + dz * fw[2]]; };
+    if (!anim.swapped) {
+      if (t < 0.15) return;
+      for (const tg of p.targets) {
+        const x = tg.old.sim.x;
+        for (let i = 0; i < x.length; i += 3) {
+          if (x[i + 1] <= by) continue;
+          const [lu, lv] = local(x, i), s = Math.abs(sampleGrid(sh.sdf, CGS, lu, lv));
+          if (s < 0.06) { const f = s / 0.06; x[i + 1] = by + (x[i + 1] - by) * f * f; }
+        }
+      }
+    } else if (t < 0.95) {
+      for (const tg of p.targets) for (const np of tg.news) {
+        const x = np.sim.x, side = np.side;
+        // the wall mostly pushes the outside away; the stamped shape is only nudged
+        const gap = side > 0 ? 0.012 + 0.022 * depth : 0.004;
+        for (let i = 0; i < x.length; i += 3) {
+          if (x[i + 1] < by - 0.01) continue;
+          const [lu, lv] = local(x, i), s = sampleGrid(sh.sdf, CGS, lu, lv);
+          if (side * s >= gap || Math.abs(s) > 0.2) continue;
+          const g = gradGrid(sh.sdf, CGS, lu, lv), gl = Math.hypot(g[0], g[1]) || 1;
+          const wx = (rt[0] * g[0] + fw[0] * g[1]) / gl, wz = (rt[2] * g[0] + fw[2] * g[1]) / gl, push = (gap - side * s) * 0.6 * side;
+          x[i] += wx * push; x[i + 2] += wz * push;
+        }
+      }
+    }
+  }
+}
+
+// ─── Hand tool ────────────────────────────────────────────────────────
+function startGrab(hit, rayDir) {
+  const pc = hit.piece, x = pc.sim.x, ids = [], w = [], off = [], R = 0.4;
+  for (let i = 0; i < pc.sim.n; i++) {
+    const d = Math.hypot(x[3 * i] - hit.p[0], x[3 * i + 1] - hit.p[1], x[3 * i + 2] - hit.p[2]);
+    if (d < R) { ids.push(i); w.push(1 - d / R * 0.7); off.push([x[3 * i] - hit.p[0], x[3 * i + 1] - hit.p[1], x[3 * i + 2] - hit.p[2]]); }
+  }
+  if (!ids.length) return false;
+  grab = { piece: pc, ids, w, off, target: hit.p.slice(), origin: hit.p.slice(), normal: norm(scale(rayDir, -1)), minOffY: Math.min(...off.map(o => o[1])) };
+  $('#stage').classList.add('grabbing');
+  return true;
+}
+function moveGrab(ro, rd) {
+  const n = grab.normal, den = dot(rd, n);
+  if (Math.abs(den) < 1e-4) return;
+  const t = dot(sub(grab.origin, ro), n) / den;
+  let T = add(ro, scale(rd, t));
+  const dx = T[0] - grab.origin[0], dz = T[2] - grab.origin[2], r = Math.hypot(dx, dz), maxR = 2.2;
+  if (r > maxR) { T[0] = grab.origin[0] + dx / r * maxR; T[2] = grab.origin[2] + dz / r * maxR; }
+  T[1] = clamp(T[1], 0.02 - grab.minOffY, 2.6);
+  grab.target = T;
+}
+function twistGrab(angle) {
+  const a = norm(sub(camEye(), cam.t)), c = Math.cos(angle), s = Math.sin(angle);
+  grab.off = grab.off.map(o => { // Rodrigues rotation about the view axis
+    const k = cross(a, o), d = dot(a, o);
+    return [o[0] * c + k[0] * s + a[0] * d * (1 - c), o[1] * c + k[1] * s + a[1] * d * (1 - c), o[2] * c + k[2] * s + a[2] * d * (1 - c)];
+  });
+  grab.minOffY = Math.min(...grab.off.map(o => o[1]));
+}
+function endGrab() { grab = null; $('#stage').classList.remove('grabbing'); }
+
+function nudge() {
+  for (const pc of pieces) {
+    const v = pc.sim.v, x = pc.sim.x, w = [(rnd() - 0.5) * 3, (rnd() - 0.5) * 2, (rnd() - 0.5) * 3];
+    const kick = [(rnd() - 0.5) * 0.8, 2.6 + rnd(), (rnd() - 0.5) * 0.8];
+    for (let i = 0; i < pc.sim.n; i++) {
+      const r = [x[3 * i] - pc.c[0], x[3 * i + 1] - pc.c[1], x[3 * i + 2] - pc.c[2]], wr = cross(w, r);
+      v[3 * i] += kick[0] + wr[0] * 0.3; v[3 * i + 1] += kick[1] + wr[1] * 0.3; v[3 * i + 2] += kick[2] + wr[2] * 0.3;
+    }
+  }
+}
+
+// ─── Cutter shapes ────────────────────────────────────────────────────
+function polySDF(poly, x, y) {
+  let d = (x - poly[0][0]) ** 2 + (y - poly[0][1]) ** 2, s = 1;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i++) {
+    const [vx, vy] = poly[i], [wx, wy] = poly[j];
+    const ex = wx - vx, ey = wy - vy, px = x - vx, py = y - vy;
+    const h = clamp((px * ex + py * ey) / (ex * ex + ey * ey), 0, 1), bx = px - ex * h, by = py - ey * h;
+    d = Math.min(d, bx * bx + by * by);
+    const c1 = y >= vy, c2 = y < wy, c3 = ex * py > ey * px;
+    if ((c1 && c2 && c3) || (!c1 && !c2 && !c3)) s = -s;
+  }
+  return s * Math.sqrt(d);
+}
+const SHAPE_POLYS = (() => {
+  const star = [];
+  for (let k = 0; k < 10; k++) { const a = Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 0.22 : 0.5; star.push([Math.cos(a) * r, Math.sin(a) * r - 0.02]); }
+  const heart = [];
+  for (let k = 0; k < 72; k++) {
+    const t = k / 72 * Math.PI * 2, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    heart.push([x * 0.03, y * 0.03 + 0.08]);
+  }
+  const dino = [[-0.62, -0.02], [-0.4, 0.03], [-0.22, 0.13], [0.0, 0.17], [0.16, 0.13], [0.24, 0.2], [0.3, 0.36], [0.36, 0.45], [0.49, 0.47], [0.54, 0.4], [0.45, 0.35], [0.4, 0.27], [0.36, 0.1], [0.32, -0.04], [0.3, -0.28], [0.18, -0.28], [0.16, -0.11], [0.0, -0.09], [-0.12, -0.11], [-0.14, -0.28], [-0.26, -0.28], [-0.26, -0.07], [-0.42, -0.05]]
+    .map(([x, y]) => [x * 1.08, y * 1.08]);
+  const bolt = [[-0.1, 0.5], [0.26, 0.5], [0.08, 0.1], [0.3, 0.1], [-0.2, -0.52], [-0.04, -0.04], [-0.26, -0.04]];
+  return [star, heart, dino, bolt];
+})();
+let cutterShapes = [];
+function buildCutterShapes() {
+  cutterShapes = SHAPE_POLYS.map((poly, k) => {
+    const s0 = new Float32Array(CGS.n * CGS.n);
+    for (let j = 0; j < CGS.n; j++) for (let i = 0; i < CGS.n; i++)
+      s0[j * CGS.n + i] = polySDF(poly, CGS.o + (i + 0.5) * CGS.cell, CGS.o + (j + 0.5) * CGS.cell);
+    const sdf = roundSDF(s0, CGS, ROUND_R);
+    const loops = contours(sdf, CGS).map(l => refineLoop(l, sdf, CGS, 0.015));
+    return { sdf, loops, color: hexLin(SHAPE_COLORS[k]) };
+  });
+}
+
+// ─── Tool meshes ──────────────────────────────────────────────────────
+function smoothNormals(V, I) {
+  const nv = V.length / 10, acc = new Float32Array(3 * nv);
+  for (let t = 0; t < I.length; t += 3) {
+    const a = I[t] * 10, b = I[t + 1] * 10, c = I[t + 2] * 10;
+    const n = cross([V[b] - V[a], V[b + 1] - V[a + 1], V[b + 2] - V[a + 2]], [V[c] - V[a], V[c + 1] - V[a + 1], V[c + 2] - V[a + 2]]);
+    for (const q of [I[t], I[t + 1], I[t + 2]]) { acc[3 * q] += n[0]; acc[3 * q + 1] += n[1]; acc[3 * q + 2] += n[2]; }
+  }
+  for (let v = 0; v < nv; v++) { const n = norm([acc[3 * v], acc[3 * v + 1], acc[3 * v + 2]]); V[10 * v + 3] = n[0]; V[10 * v + 4] = n[1]; V[10 * v + 5] = n[2]; }
+}
+function tube(V, I, x0, x1, cy, ry, rz, col, mat, seg = 20) {
+  const base = V.length / 10;
+  for (const x of [x0, x1]) for (let k = 0; k < seg; k++) { const a = k / seg * Math.PI * 2; V.push(x, cy + Math.sin(a) * ry, Math.cos(a) * rz, 0, 0, 0, ...col, mat); }
+  for (let k = 0; k < seg; k++) { const a = base + k, b = base + (k + 1) % seg; I.push(a, b, b + seg, a, b + seg, a + seg); }
+  for (const [x, off, flip] of [[x0, 0, true], [x1, seg, false]]) {
+    const c = V.length / 10; V.push(x, cy, 0, 0, 0, 0, ...col, mat);
+    for (let k = 0; k < seg; k++) { const a = base + off + k, b = base + off + (k + 1) % seg; flip ? I.push(c, b, a) : I.push(c, a, b); }
+  }
+}
+function knifeMesh() {
+  const V = [], I = [], steel = [0.6, 0.61, 0.63];
+  const top = x => x < 1.25 ? 1.0 : 1.0 - 0.88 * Math.pow((x - 1.25) / 0.66, 2);
+  const th = y => 0.0015 + 0.011 * Math.min(1, y / 0.28);
+  const NX = 44, NY = 8, X0 = -1.9, X1 = 1.9;
+  const colsBase = [];
+  for (const side of [1, -1]) {
+    const base = V.length / 10; colsBase.push(base);
+    for (let i = 0; i <= NX; i++) {
+      const x = X0 + (X1 - X0) * i / NX;
+      for (let j = 0; j <= NY; j++) { const y = top(x) * j / NY; V.push(x, y, side * th(y), 0, 0, side, ...steel, 0); }
+    }
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++) {
+      const a = base + i * (NY + 1) + j, b = a + NY + 1, c = b + 1, d = a + 1;
+      side > 0 ? I.push(a, b, c, a, c, d) : I.push(a, c, b, a, d, c);
+    }
+  }
+  const [f, b] = colsBase;
+  for (let i = 0; i < NX; i++) { // spine and edge strips
+    const ft = f + i * (NY + 1) + NY, bt = b + i * (NY + 1) + NY; I.push(ft, bt, bt + NY + 1, ft, bt + NY + 1, ft + NY + 1);
+    const fe = f + i * (NY + 1), be = b + i * (NY + 1); I.push(fe, fe + NY + 1, be + NY + 1, fe, be + NY + 1, be);
+  }
+  for (let j = 0; j < NY; j++) { const a = f + j, c = b + j; I.push(a, c, c + 1, a, c + 1, a + 1); }
+  smoothNormals(V, I);
+  const handle = hexLin('#7FB5AE'), brass = [0.72, 0.7, 0.66];
+  tube(V, I, -1.99, -1.9, 0.86, 0.12, 0.085, brass, 2);
+  tube(V, I, -2.95, -1.99, 0.86, 0.105, 0.075, handle, 1);
+  // tubes: smooth radial normals
+  for (let v = 0; v < V.length / 10; v++) if (V[10 * v + 9] > 0.5) {
+    const ny = V[10 * v + 1] - 0.86, nz = V[10 * v + 2], l = Math.hypot(ny, nz);
+    if (l > 1e-4) { V[10 * v + 3] = 0; V[10 * v + 4] = ny / l; V[10 * v + 5] = nz / l; } else { V[10 * v + 3] = V[10 * v] < -2.4 ? -1 : 1; }
+  }
+  return { V: new Float32Array(V), I: new Uint32Array(I) };
+}
+function cutterMesh(k) {
+  const sh = cutterShapes[k], V = [], I = [], col = sh.color;
+  const prof = [[0.009, 0], [0.009, 0.46], [0.022, 0.48], [0.022, 0.52], [0, 0.545], [-0.022, 0.52], [-0.022, 0.48], [-0.009, 0.46], [-0.009, 0]];
+  for (const loop of sh.loops) {
+    const base = V.length / 10, m = loop.length, P = prof.length;
+    for (const p of loop) for (const [o, y] of prof) V.push(p[0] + p[2] * o, y, p[1] + p[3] * o, 0, 0, 0, ...col, 3);
+    for (let i = 0; i < m; i++) for (let j = 0; j < P; j++) {
+      const a = base + i * P + j, b = base + ((i + 1) % m) * P + j, c = base + ((i + 1) % m) * P + (j + 1) % P, d = base + i * P + (j + 1) % P;
+      I.push(a, b, c, a, c, d);
+    }
+  }
+  smoothNormals(V, I);
+  return { V: new Float32Array(V), I: new Uint32Array(I) };
+}
+
+// ─── WGSL ─────────────────────────────────────────────────────────────
+const WGSL = /* wgsl */`
+struct Globals {
+  viewProj: mat4x4f, invViewProj: mat4x4f, knifeM: mat4x4f, cutterM: mat4x4f,
+  eye: vec4f, res: vec4f, page: vec4f, cream: vec4f, crust: vec4f, tint: vec4f, misc: vec4f,
+  cubeCol: array<vec4f, 4>,
+  shadows: array<vec4f, 32>,
+};
+struct Frame { r0: vec4f, r1: vec4f, r2: vec4f, c: vec4f, C: vec4f, };
+struct Cube { c: vec4f, m0: vec4f, m1: vec4f, m2: vec4f, h: vec4f, };
+@group(0) @binding(0) var<uniform> G: Globals;
+@group(0) @binding(1) var<uniform> FR: array<Frame, 14>;
+@group(0) @binding(2) var<uniform> CB: array<Cube, 64>;
+@group(0) @binding(3) var sdfTex: texture_2d_array<f32>;
+@group(1) @binding(0) var sceneTex: texture_2d<f32>;
+@group(1) @binding(1) var samp: sampler;
+
+const CRUST = 0.15;
+const TOP = 0.9;
+const KEY = vec3f(-0.45, 0.8, 0.5);
+const RIM = vec3f(0.7, 0.45, -0.55);
+
+fn toSrgb(c: vec3f) -> vec3f {
+  let x = max(c, vec3f(0.0));
+  return select(1.055 * pow(x, vec3f(1.0 / 2.4)) - 0.055, x * 12.92, x <= vec3f(0.0031308));
+}
+fn toLin(c: vec3f) -> vec3f { return select(pow((c + 0.055) / 1.055, vec3f(2.4)), c / 12.92, c <= vec3f(0.04045)); }
+fn hash2(p: vec2f) -> f32 { return fract(sin(dot(p, vec2f(127.1, 311.7))) * 43758.5453); }
+fn hash3(p: vec3f) -> f32 { return fract(sin(dot(p, vec3f(127.1, 311.7, 74.7))) * 43758.5453); }
+fn dither(fc: vec2f) -> f32 { return (hash2(fc) - 0.5) / 255.0; }
+fn neutral(c0: vec3f) -> vec3f { // Khronos PBR Neutral
+  let x = min(c0.r, min(c0.g, c0.b));
+  let off = select(0.04, x - 6.25 * x * x, x < 0.08);
+  var c = c0 - off;
+  let peak = max(c.r, max(c.g, c.b));
+  let sc = 0.76;
+  if (peak < sc) { return c; }
+  let d = 1.0 - sc;
+  let np = 1.0 - d * d / (peak + d - sc);
+  c *= np / peak;
+  let g = 1.0 - 1.0 / (0.15 * (peak - np) + 1.0);
+  return mix(c, vec3f(np), g);
+}
+fn env(d: vec3f) -> vec3f {
+  var c = G.page.rgb * (0.78 + 0.3 * clamp(d.y * 0.5 + 0.5, 0.0, 1.0));
+  c += vec3f(2.6) * smoothstep(0.93, 0.975, dot(d, normalize(KEY)));
+  c += vec3f(1.2) * smoothstep(0.95, 0.985, dot(d, normalize(RIM)));
+  c += vec3f(0.5) * smoothstep(0.6, 0.95, d.y) * 0.4;
+  return c;
+}
+fn ggx(N: vec3f, V: vec3f, L: vec3f, rough: f32) -> f32 {
+  let H = normalize(V + L);
+  let nh = max(dot(N, H), 0.0);
+  let a = rough * rough; let a2 = a * a;
+  let dd = nh * nh * (a2 - 1.0) + 1.0;
+  let D = a2 / (3.14159 * dd * dd);
+  let nl = max(dot(N, L), 0.0); let nv = max(dot(N, V), 1e-3);
+  let k = a * 0.5;
+  return D * nl / ((nl * (1.0 - k) + k) * (nv * (1.0 - k) + k)) * 0.25;
+}
+
+// ── fullscreen: background + floor, and the scene blit
+struct FOut { @builtin(position) pos: vec4f, @location(0) uv: vec2f, };
+@vertex fn vsFull(@builtin(vertex_index) i: u32) -> FOut {
+  var p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o: FOut; o.pos = vec4f(p[i], 0.0, 1.0); o.uv = p[i] * vec2f(0.5, -0.5) + 0.5; return o;
+}
+fn shadowAt(q: vec2f) -> f32 {
+  var s = 0.0;
+  let n = i32(G.misc.y);
+  for (var i = 0; i < n; i++) {
+    let a = G.shadows[i * 2]; let b = G.shadows[i * 2 + 1];
+    let d = q - a.xy;
+    let m = b.x * d.x * d.x + 2.0 * b.y * d.x * d.y + b.z * d.y * d.y;
+    s += a.z * exp(-0.5 * m) + b.w * exp(-2.4 * m);
+  }
+  return clamp(s, 0.0, 0.65);
+}
+@fragment fn fsBg(in: FOut) -> @location(0) vec4f {
+  let ndc = vec2f(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0);
+  let nr = G.invViewProj * vec4f(ndc, 0.0, 1.0);
+  let fr = G.invViewProj * vec4f(ndc, 1.0, 1.0);
+  let ro = nr.xyz / nr.w;
+  let rd = normalize(fr.xyz / fr.w - ro);
+  var col = G.page.rgb;
+  var s = 0.0;
+  if (rd.y < -1e-4) {
+    let h = ro + rd * (-ro.y / rd.y);
+    s = shadowAt(h.xz);
+    col = col * (1.0 - s * (1.0 - G.tint.rgb));
+  }
+  return vec4f(toSrgb(col) + dither(in.pos.xy) * step(0.002, s), 1.0);
+}
+@fragment fn fsBlit(in: FOut) -> @location(0) vec4f { return textureSampleLevel(sceneTex, samp, in.uv, 0.0); }
+
+// ── jello
+struct JIn { @location(0) pos: vec3f, @location(1) nrm: vec3f, @location(2) rest: vec3f, @location(3) slot: f32, };
+struct JOut { @builtin(position) clip: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) rest: vec3f, @location(3) @interpolate(flat) slot: u32, };
+@vertex fn vsJello(v: JIn) -> JOut {
+  var o: JOut;
+  o.clip = G.viewProj * vec4f(v.pos, 1.0); o.wp = v.pos; o.n = v.nrm; o.rest = v.rest; o.slot = u32(v.slot + 0.5);
+  return o;
+}
+fn sdfTexel(ij: vec2i, slot: u32) -> f32 { return textureLoad(sdfTex, clamp(ij, vec2i(0), vec2i(143)), i32(slot), 0).x; }
+fn sdfAt(q: vec2f, slot: u32) -> f32 { // bilinear, matching the CPU sampler
+  let f = (q + 1.44) / 0.02 - 0.5;
+  let i = vec2i(floor(f)); let t = f - floor(f);
+  let a = sdfTexel(i, slot); let b = sdfTexel(i + vec2i(1, 0), slot);
+  let c = sdfTexel(i + vec2i(0, 1), slot); let d = sdfTexel(i + vec2i(1, 1), slot);
+  return mix(mix(a, b, t.x), mix(c, d, t.x), t.y);
+}
+fn rayBox(ro: vec3f, rd: vec3f, i: i32) -> vec2f {
+  let c = CB[i];
+  let o = ro - c.c.xyz;
+  let lo = vec3f(dot(c.m0.xyz, o), dot(c.m1.xyz, o), dot(c.m2.xyz, o));
+  var ld = vec3f(dot(c.m0.xyz, rd), dot(c.m1.xyz, rd), dot(c.m2.xyz, rd));
+  ld = select(ld, vec3f(1e-6), abs(ld) < vec3f(1e-6));
+  let a = (-c.h.xyz - lo) / ld;
+  let b = (c.h.xyz - lo) / ld;
+  let tn = min(a, b); let tf = max(a, b);
+  return vec2f(max(max(tn.x, tn.y), tn.z), min(min(tf.x, tf.y), tf.z));
+}
+fn segment(S: ptr<function, vec3f>, T: ptr<function, vec3f>, len: f32, ext: vec3f, em: vec3f) {
+  if (len <= 0.0) { return; }
+  let tr = exp(-ext * len);
+  *S += *T * em / ext * (1.0 - tr);
+  *T *= tr;
+}
+@fragment fn fsJello(in: JOut) -> @location(0) vec4f {
+  let V = normalize(G.eye.xyz - in.wp);
+  var N = normalize(in.n);
+  if (dot(N, V) < 0.0) { N = normalize(N - V * dot(N, V) * 1.02); }
+  let L = normalize(KEY);
+  let cv = clamp(dot(N, V), 0.0, 1.0);
+  let fres = 0.03 + 0.97 * pow(1.0 - cv, 5.0);
+  let spec = ggx(N, V, L, 0.14) * 2.2 + ggx(N, V, normalize(RIM), 0.22) * 0.9;
+  let fr = FR[in.slot];
+  let R = mat3x3f(fr.r0.xyz, fr.r1.xyz, fr.r2.xyz);
+  var col: vec3f;
+  if (in.rest.y < CRUST - 0.002) {
+    let n1 = hash3(floor(in.rest * 60.0));
+    let n2 = hash3(floor(in.rest * 18.0) + 3.0);
+    let alb = G.crust.rgb * (0.8 + 0.25 * n1 + 0.15 * (n2 - 0.5));
+    col = alb * (0.42 + 0.62 * max(dot(N, L), 0.0)) + spec * 0.06 + env(reflect(-V, N)) * fres * 0.2;
+  } else {
+    let rd = refract(-V, N, 0.75);
+    let rr = transpose(R) * rd;
+    let p = in.rest + rr * 0.004;
+    // find where the ray leaves this piece (march the distance field, then refine)
+    var tE = 1.8;
+    var tp = 0.0;
+    let st = 0.03;
+    for (var i = 0; i < 60; i++) {
+      tp += st;
+      if (tp > 1.8) { break; }
+      if (sdfAt((p + rr * tp).xz, in.slot) > 0.004) {
+        var lo = tp - st; var hi = tp;
+        for (var k = 0; k < 5; k++) { let m = 0.5 * (lo + hi); if (sdfAt((p + rr * m).xz, in.slot) > 0.004) { hi = m; } else { lo = m; } }
+        tE = hi; break;
+      }
+    }
+    if (rr.y > 1e-4) { tE = min(tE, (TOP - p.y) / rr.y); }
+    var hitCrust = false;
+    if (rr.y < -1e-4) { let tc = (CRUST - p.y) / rr.y; if (tc < tE) { tE = max(tc, 0.0); hitCrust = true; } }
+    // cube intervals along the ray, sorted front to back
+    var iv: array<vec3f, 16>;
+    var n = 0;
+    let nc = i32(G.misc.x);
+    for (var i = 0; i < nc; i++) {
+      let t = rayBox(p, rr, i);
+      let t0 = max(t.x, 0.0); let t1 = min(t.y, tE);
+      if (t0 < t1 && n < 16) {
+        var j = n;
+        loop { if (j == 0 || iv[j - 1].x <= t0) { break; } iv[j] = iv[j - 1]; j--; }
+        iv[j] = vec3f(t0, t1, CB[i].c.w);
+        n++;
+      }
+    }
+    var T = vec3f(1.0);
+    var S = vec3f(0.0);
+    let dens = 4.6;
+    let cext = vec3f(dens) + (1.0 - G.cream.rgb) * 1.5;
+    var cur = 0.0;
+    for (var k = 0; k < n; k++) {
+      let a = iv[k];
+      if (a.x > cur) {
+        let y = (p + rr * (0.5 * (cur + a.x))).y;
+        segment(&S, &T, a.x - cur, cext, G.cream.rgb * dens * (0.72 + 0.4 * y / TOP));
+      }
+      let s0 = max(a.x, cur);
+      if (a.y > s0) {
+        let cc = G.cubeCol[i32(a.z)].rgb;
+        let y = (p + rr * (0.5 * (s0 + a.y))).y;
+        segment(&S, &T, a.y - s0, (1.0 - cc) * 13.0 + 0.9, cc * 0.95 * (0.72 + 0.4 * y / TOP));
+      }
+      cur = max(cur, a.y);
+    }
+    if (tE > cur) {
+      let y = (p + rr * (0.5 * (cur + tE))).y;
+      segment(&S, &T, tE - cur, cext, G.cream.rgb * dens * (0.72 + 0.4 * y / TOP));
+    }
+    if (hitCrust) { S += T * G.crust.rgb * 0.55; T = vec3f(0.0); }
+    S *= 0.78 + 0.34 * max(dot(N, L), 0.0);
+    let q = G.viewProj * vec4f(in.wp + rd * 0.35, 1.0);
+    let uv = clamp((q.xy / q.w) * vec2f(0.5, -0.5) + 0.5, vec2f(0.001), vec2f(0.999));
+    let bg = toLin(textureSampleLevel(sceneTex, samp, uv, 0.0).rgb);
+    col = S + T * bg;
+    col = mix(col, env(reflect(-V, N)), fres) + spec;
+  }
+  return vec4f(toSrgb(neutral(col)) + dither(in.clip.xy), 1.0);
+}
+
+// ── tools
+struct TIn { @location(0) pos: vec3f, @location(1) nrm: vec3f, @location(2) col: vec3f, @location(3) mat: f32, };
+struct TOut { @builtin(position) clip: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) col: vec3f, @location(3) @interpolate(flat) mat: u32, @location(4) lp: vec3f, };
+@vertex fn vsTool(v: TIn) -> TOut {
+  var o: TOut;
+  let m = u32(v.mat + 0.5);
+  var M = G.knifeM;
+  if (m >= 3u) { M = G.cutterM; }
+  let w = M * vec4f(v.pos, 1.0);
+  o.clip = G.viewProj * w; o.wp = w.xyz; o.n = (M * vec4f(v.nrm, 0.0)).xyz; o.col = v.col; o.mat = m; o.lp = v.pos;
+  return o;
+}
+@fragment fn fsTool(in: TOut) -> @location(0) vec4f {
+  let V = normalize(G.eye.xyz - in.wp);
+  var N = normalize(in.n);
+  if (dot(N, V) < 0.0) { N = -N; }
+  let L = normalize(KEY);
+  let nl = max(dot(N, L), 0.0);
+  let cv = clamp(dot(N, V), 0.0, 1.0);
+  let fres = 0.04 + 0.96 * pow(1.0 - cv, 5.0);
+  let Rv = reflect(-V, N);
+  var col: vec3f;
+  if (in.mat == 0u) {
+    let streak = 0.88 + 0.12 * hash2(vec2f(floor(in.lp.y * 420.0), floor(in.lp.x * 3.0)));
+    let base = in.col * streak;
+    col = env(Rv) * base * 0.75 + base * 0.12 + base * (ggx(N, V, L, 0.32) * 1.8 + ggx(N, V, normalize(RIM), 0.4) * 0.8);
+  } else if (in.mat == 1u) {
+    let rim = pow(1.0 - cv, 2.0);
+    col = in.col * (0.38 + 0.55 * nl) + in.col * rim * 0.7 + env(Rv) * fres * 0.7 + vec3f(ggx(N, V, L, 0.18) * 1.6);
+  } else if (in.mat == 2u) {
+    col = env(Rv) * in.col * 0.9 + vec3f(ggx(N, V, L, 0.2) * 2.0);
+  } else {
+    col = in.col * (0.5 + 0.55 * nl) + vec3f(ggx(N, V, L, 0.5) * 0.5) + env(Rv) * fres * 0.25;
+  }
+  return vec4f(toSrgb(neutral(col)) + dither(in.clip.xy), 1.0);
+}
+
+// ── wireframe
+@vertex fn vsWire(v: JIn) -> @builtin(position) vec4f { return G.viewProj * vec4f(v.pos + v.nrm * 0.003, 1.0); }
+@fragment fn fsWire() -> @location(0) vec4f { return vec4f(0.12, 0.11, 0.1, 0.35); }
+`;
+
+// ─── WebGPU renderer ──────────────────────────────────────────────────
+const canvas = $('#gl');
+let device, ctx, format, gpuReady = false, lostCount = 0;
+let pipes = {}, bgl0, bgl1, bg0, bg1, gBuf, fBuf, cBuf, sdfTex, sampler;
+let vBuf = null, iBuf = null, eBuf = null, vData = null, nIdx = 0, nEdge = 0;
+let knifeGeo = null, cutterGeo = [];
+let msaaTex, depthTex, sceneTex, sceneDepth, W = 1, H = 1, dpr = 1;
+const gData = new Float32Array(236), fData = new Float32Array(14 * 20), cData = new Float32Array(64 * 20);
+let VP = new Float32Array(16), IVP = new Float32Array(16);
+
+class GpuError extends Error {}
+async function initGPU() {
+  if (!navigator.gpu) throw new GpuError('Your browser doesn’t expose WebGPU (navigator.gpu is missing). Try a recent Chrome or Edge, or Safari 26 and later.');
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+  if (!adapter) throw new GpuError('WebGPU is switched on, but no graphics adapter was offered. Hardware acceleration may be disabled, or this GPU is on the browser’s blocklist.');
+  device = await adapter.requestDevice();
+  device.lost.then(info => onDeviceLost(info));
+  format = navigator.gpu.getPreferredCanvasFormat();
+  ctx = canvas.getContext('webgpu');
+  ctx.configure({ device, format, alphaMode: 'opaque' });
+
+  const module = device.createShaderModule({ code: WGSL });
+  const info = await module.getCompilationInfo();
+  const errs = info.messages.filter(m => m.type === 'error');
+  if (errs.length) throw new GpuError('The cake’s shaders didn’t compile: ' + errs.map(e => `line ${e.lineNum}: ${e.message}`).join('; '));
+
+  device.pushErrorScope('validation');
+  bgl0 = device.createBindGroupLayout({ entries: [
+    { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
+    { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: {} },
+    { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: {} },
+    { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'unfilterable-float', viewDimension: '2d-array' } },
+  ] });
+  bgl1 = device.createBindGroupLayout({ entries: [
+    { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+    { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+  ] });
+  const lay0 = device.createPipelineLayout({ bindGroupLayouts: [bgl0] });
+  const lay01 = device.createPipelineLayout({ bindGroupLayouts: [bgl0, bgl1] });
+  const jelloLayout = [{ arrayStride: 40, attributes: [
+    { shaderLocation: 0, offset: 0, format: 'float32x3' }, { shaderLocation: 1, offset: 12, format: 'float32x3' },
+    { shaderLocation: 2, offset: 24, format: 'float32x3' }, { shaderLocation: 3, offset: 36, format: 'float32' }] }];
+  const depthOn = { format: 'depth24plus', depthWriteEnabled: true, depthCompare: 'less' };
+  const depthOff = { format: 'depth24plus', depthWriteEnabled: false, depthCompare: 'always' };
+  const mk = (layout, vs, fs, fmt, count, buffers, depth, extra = {}) => device.createRenderPipeline({
+    layout, vertex: { module, entryPoint: vs, buffers },
+    fragment: { module, entryPoint: fs, targets: [{ format: fmt, ...(extra.blend ? { blend: extra.blend } : {}) }] },
+    primitive: { topology: extra.topology || 'triangle-list', cullMode: extra.cull || 'none' },
+    depthStencil: depth, multisample: { count },
+  });
+  pipes.bg = mk(lay0, 'vsFull', 'fsBg', 'rgba8unorm', 1, [], depthOff);
+  pipes.toolScene = mk(lay0, 'vsTool', 'fsTool', 'rgba8unorm', 1, jelloLayout, depthOn);
+  pipes.blit = mk(lay01, 'vsFull', 'fsBlit', format, 4, [], depthOff);
+  pipes.tool = mk(lay0, 'vsTool', 'fsTool', format, 4, jelloLayout, depthOn);
+  pipes.jello = mk(lay01, 'vsJello', 'fsJello', format, 4, jelloLayout, depthOn, { cull: 'back' });
+  pipes.wire = mk(lay0, 'vsWire', 'fsWire', format, 4, jelloLayout, { format: 'depth24plus', depthWriteEnabled: false, depthCompare: 'less-equal' },
+    { topology: 'line-list', blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } });
+
+  gBuf = device.createBuffer({ size: gData.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  fBuf = device.createBuffer({ size: fData.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  cBuf = device.createBuffer({ size: cData.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  sdfTex = device.createTexture({ size: [PG.n, PG.n, MAX_PIECES], format: 'r32float', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+  sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+  bg0 = device.createBindGroup({ layout: bgl0, entries: [
+    { binding: 0, resource: { buffer: gBuf } }, { binding: 1, resource: { buffer: fBuf } },
+    { binding: 2, resource: { buffer: cBuf } }, { binding: 3, resource: sdfTex.createView({ dimension: '2d-array' }) }] });
+  const err = await device.popErrorScope();
+  if (err) throw new GpuError('WebGPU setup failed: ' + err.message);
+
+  knifeGeo = uploadGeo(knifeMesh());
+  cutterGeo = cutterShapes.map((_, k) => uploadGeo(cutterMesh(k)));
+  vBuf = null; geomDirty = true;
+  for (const p of pieces) p.sdfDirty = true;
+  resize(true);
+  gpuReady = true;
+}
+function uploadGeo(g) {
+  const vb = device.createBuffer({ size: g.V.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(vb, 0, g.V);
+  const ib = device.createBuffer({ size: g.I.byteLength, usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(ib, 0, g.I);
+  return { vb, ib, n: g.I.length };
+}
+async function onDeviceLost(info) {
+  gpuReady = false;
+  if (info.reason === 'destroyed') return;
+  if (lostCount++ < 2) {
+    try { await initGPU(); return; } catch (e) { /* fall through */ }
+  }
+  showNoGPU('The graphics device was lost and couldn’t be recovered. Reload the page to try again.');
+}
+function resize(force) {
+  if (!device) return;
+  const r = canvas.getBoundingClientRect();
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(2, Math.round(r.width * dpr)), h = Math.max(2, Math.round(r.height * dpr));
+  if (!force && w === W && h === H && msaaTex) return;
+  W = w; H = h; canvas.width = W; canvas.height = H;
+  for (const t of [msaaTex, depthTex, sceneTex, sceneDepth]) t && t.destroy();
+  msaaTex = device.createTexture({ size: [W, H], sampleCount: 4, format, usage: GPUTextureUsage.RENDER_ATTACHMENT });
+  depthTex = device.createTexture({ size: [W, H], sampleCount: 4, format: 'depth24plus', usage: GPUTextureUsage.RENDER_ATTACHMENT });
+  sceneTex = device.createTexture({ size: [W, H], format: 'rgba8unorm', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
+  sceneDepth = device.createTexture({ size: [W, H], format: 'depth24plus', usage: GPUTextureUsage.RENDER_ATTACHMENT });
+  bg1 = device.createBindGroup({ layout: bgl1, entries: [{ binding: 0, resource: sceneTex.createView() }, { binding: 1, resource: sampler }] });
+}
+function rebuildGeometry() {
+  let nv = 0, ni = 0;
+  for (const p of pieces) { p.vOff = nv; nv += p.rend.nv; ni += p.rend.idx.length; }
+  vData = new Float32Array(nv * 10);
+  const idx = new Uint32Array(ni), edges = [];
+  let io = 0;
+  for (const p of pieces) {
+    const r = p.rend;
+    for (let v = 0; v < r.nv; v++) { const o = (p.vOff + v) * 10; vData[o + 6] = r.rest[3 * v]; vData[o + 7] = r.rest[3 * v + 1]; vData[o + 8] = r.rest[3 * v + 2]; vData[o + 9] = p.slot; }
+    for (let t = 0; t < r.idx.length; t += 3) {
+      const a = r.idx[t] + p.vOff, b = r.idx[t + 1] + p.vOff, c = r.idx[t + 2] + p.vOff;
+      idx[io++] = a; idx[io++] = b; idx[io++] = c;
+      edges.push(a, b, b, c);
+    }
+  }
+  vBuf && vBuf.destroy(); iBuf && iBuf.destroy(); eBuf && eBuf.destroy();
+  vBuf = device.createBuffer({ size: Math.max(16, vData.byteLength), usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+  iBuf = device.createBuffer({ size: Math.max(16, idx.byteLength), usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(iBuf, 0, idx);
+  const e = new Uint32Array(edges);
+  eBuf = device.createBuffer({ size: Math.max(16, e.byteLength), usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(eBuf, 0, e);
+  nIdx = idx.length; nEdge = e.length;
+  for (const p of pieces) if (p.sdfDirty) {
+    device.queue.writeTexture({ texture: sdfTex, origin: [0, 0, p.slot] }, p.sdf, { bytesPerRow: PG.n * 4, rowsPerImage: PG.n }, [PG.n, PG.n, 1]);
+    p.sdfDirty = false;
+  }
+  geomDirty = false;
+}
+// Skin render vertices to the tets and rebuild normals.
+function skin() {
+  for (const p of pieces) {
+    const r = p.rend, x = p.sim.x, T = p.sim.tets, R = p.R, wv = p.wv, wn = p.wn, et = r.et, ew = r.ew, eo = r.eo;
+    for (let v = 0; v < r.nv; v++) {
+      const tt = et[v], t = tt * 4, a = T[t] * 3, b = T[t + 1] * 3, c = T[t + 2] * 3, d = T[t + 3] * 3;
+      const w0 = ew[4 * v], w1 = ew[4 * v + 1], w2 = ew[4 * v + 2], w3 = ew[4 * v + 3];
+      let px = w0 * x[a] + w1 * x[b] + w2 * x[c] + w3 * x[d];
+      let py = w0 * x[a + 1] + w1 * x[b + 1] + w2 * x[c + 1] + w3 * x[d + 1];
+      let pz = w0 * x[a + 2] + w1 * x[b + 2] + w2 * x[c + 2] + w3 * x[d + 2];
+      const ox = eo[3 * v], oy = eo[3 * v + 1], oz = eo[3 * v + 2];
+      if (ox !== 0 || oy !== 0 || oz !== 0) {
+        px += R[0] * ox + R[3] * oy + R[6] * oz; py += R[1] * ox + R[4] * oy + R[7] * oz; pz += R[2] * ox + R[5] * oy + R[8] * oz;
+      }
+      wv[3 * v] = px; wv[3 * v + 1] = py; wv[3 * v + 2] = pz;
+    }
+    wn.fill(0);
+    const I = r.idx;
+    for (let t = 0; t < I.length; t += 3) {
+      const a = 3 * I[t], b = 3 * I[t + 1], c = 3 * I[t + 2];
+      const ux = wv[b] - wv[a], uy = wv[b + 1] - wv[a + 1], uz = wv[b + 2] - wv[a + 2];
+      const vx = wv[c] - wv[a], vy = wv[c + 1] - wv[a + 1], vz = wv[c + 2] - wv[a + 2];
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      wn[a] += nx; wn[a + 1] += ny; wn[a + 2] += nz; wn[b] += nx; wn[b + 1] += ny; wn[b + 2] += nz; wn[c] += nx; wn[c + 1] += ny; wn[c + 2] += nz;
+    }
+    if (!vData) continue;
+    for (let v = 0; v < r.nv; v++) {
+      const nx = wn[3 * v], ny = wn[3 * v + 1], nz = wn[3 * v + 2], l = Math.hypot(nx, ny, nz) || 1, o = (p.vOff + v) * 10;
+      vData[o] = wv[3 * v]; vData[o + 1] = wv[3 * v + 1]; vData[o + 2] = wv[3 * v + 2];
+      vData[o + 3] = nx / l; vData[o + 4] = ny / l; vData[o + 5] = nz / l;
+    }
+  }
+}
+
+function camEye() {
+  const cp = Math.cos(cam.pitch);
+  return [cam.t[0] + cam.dist * cp * Math.sin(cam.yaw), cam.t[1] + cam.dist * Math.sin(cam.pitch), cam.t[2] + cam.dist * cp * Math.cos(cam.yaw)];
+}
+function updateCamera(dt) {
+  if (pieces.length && !grab) { // ease after the cake if it's been thrown
+    let cx = 0, cz = 0; for (const p of pieces) { cx += p.c[0]; cz += p.c[2]; }
+    cx = clamp(cx / pieces.length, -2, 2); cz = clamp(cz / pieces.length, -2, 2);
+    const k = 1 - Math.exp(-dt * 1.5);
+    cam.t[0] += (cx - cam.t[0]) * k; cam.t[2] += (cz - cam.t[2]) * k;
+  }
+  const aspect = W / H;
+  const fov = aspect < 0.9 ? cam.fov * 1.35 : cam.fov;
+  VP = mul4(perspective(fov, aspect, 0.1, 80), lookAt(camEye(), cam.t));
+  IVP = inv4(VP);
+}
+function worldToScreen(p) { const q = tp(VP, p); const r = canvas.getBoundingClientRect(); return [(q[0] * 0.5 + 0.5) * r.width, (0.5 - q[1] * 0.5) * r.height]; }
+function screenRay(px, py) {
+  const r = canvas.getBoundingClientRect(), x = px / r.width * 2 - 1, y = 1 - py / r.height * 2;
+  const a = tp(IVP, [x, y, 0]), b = tp(IVP, [x, y, 1]);
+  return { o: a, d: norm(sub(b, a)) };
+}
+function pick(ro, rd) {
+  let best = Infinity, hit = null;
+  for (const pc of pieces) {
+    const P = pc.wv, I = pc.rend.idx;
+    for (let t = 0; t < I.length; t += 3) {
+      const a = 3 * I[t], b = 3 * I[t + 1], c = 3 * I[t + 2];
+      const e1x = P[b] - P[a], e1y = P[b + 1] - P[a + 1], e1z = P[b + 2] - P[a + 2];
+      const e2x = P[c] - P[a], e2y = P[c + 1] - P[a + 1], e2z = P[c + 2] - P[a + 2];
+      const px = rd[1] * e2z - rd[2] * e2y, py = rd[2] * e2x - rd[0] * e2z, pz = rd[0] * e2y - rd[1] * e2x;
+      const det = e1x * px + e1y * py + e1z * pz;
+      if (Math.abs(det) < 1e-9) continue;
+      const id = 1 / det, tx = ro[0] - P[a], ty = ro[1] - P[a + 1], tz = ro[2] - P[a + 2];
+      const u = (tx * px + ty * py + tz * pz) * id; if (u < 0 || u > 1) continue;
+      const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x;
+      const v = (rd[0] * qx + rd[1] * qy + rd[2] * qz) * id; if (v < 0 || u + v > 1) continue;
+      const d = (e2x * qx + e2y * qy + e2z * qz) * id;
+      if (d > 0 && d < best) { best = d; hit = { piece: pc, p: add(ro, scale(rd, d)), t: d }; }
+    }
+  }
+  return hit;
+}
+function rayPlaneY(ro, rd, y) { if (Math.abs(rd[1]) < 1e-5) return null; const t = (y - ro[1]) / rd[1]; return t > 0 ? add(ro, scale(rd, t)) : null; }
+
+function writeUniforms() {
+  const f = FLAVOURS[ui.flavour];
+  gData.set(VP, 0); gData.set(IVP, 16);
+  const ku = knife.u, kn = [-ku[2], 0, ku[0]], M = knife.M;
+  gData.set([ku[0], 0, ku[2], 0, 0, 1, 0, 0, kn[0], 0, kn[2], 0, M[0], M[1], M[2], 1], 32);
+  const cr = cutter.right, cf = cutter.fwd;
+  gData.set([cr[0], 0, cr[2], 0, 0, 1, 0, 0, cf[0], 0, cf[2], 0, cutter.P[0], cutter.by, cutter.P[2], 1], 48);
+  gData.set([...camEye(), 1], 64);
+  gData.set([W, H, simTime, 0], 68);
+  gData.set([...PAGE_LIN, 1], 72);
+  gData.set([...hexLin(f.base), 1], 76);
+  gData.set([...hexLin(f.crust), 1], 80);
+  const cl = f.cubes.map(hexLin), avg = [0, 1, 2].map(k => (cl[0][k] + cl[1][k] + cl[2][k] + cl[3][k]) / 4);
+  gData.set([...avg.map(a => lerp(0.55, a, 0.55)), 1], 84);
+  gData.set([cubes.length, pieces.length, simTime, 0], 88);
+  for (let k = 0; k < 4; k++) gData.set([...cl[k], 1], 92 + 4 * k);
+  pieces.forEach((pc, i) => {
+    const x = pc.sim.x, n = pc.sim.n;
+    let mx = 0, mz = 0, my = Infinity;
+    for (let k = 0; k < n; k++) { mx += x[3 * k]; mz += x[3 * k + 2]; my = Math.min(my, x[3 * k + 1]); }
+    mx /= n; mz /= n;
+    let sxx = 0, sxz = 0, szz = 0;
+    for (let k = 0; k < n; k++) { const dx = x[3 * k] - mx, dz = x[3 * k + 2] - mz; sxx += dx * dx; sxz += dx * dz; szz += dz * dz; }
+    const blur = 0.05 + Math.max(0, my) * 0.3;
+    sxx = sxx / n + blur * blur; szz = szz / n + blur * blur; sxz /= n;
+    const det = sxx * szz - sxz * sxz, h = Math.max(0, my);
+    gData.set([mx, mz, 0.24 * Math.exp(-h * 1.6), h, szz / det, -sxz / det, sxx / det, 0.2 * Math.exp(-h * 7)], 108 + 8 * i);
+  });
+  device.queue.writeBuffer(gBuf, 0, gData);
+  for (const pc of pieces) {
+    const o = pc.slot * 20, R = pc.R;
+    fData.set([R[0], R[1], R[2], 0, R[3], R[4], R[5], 0, R[6], R[7], R[8], 0, pc.c[0], pc.c[1], pc.c[2], 0, pc.C[0], pc.C[1], pc.C[2], 0], o);
+  }
+  device.queue.writeBuffer(fBuf, 0, fData);
+}
+function writeCubes() {
+  cubes.forEach((k, i) => {
+    const M = k.M;
+    cData.set([k.c[0], k.c[1], k.c[2], k.col, M[0], M[1], M[2], 0, M[3], M[4], M[5], 0, M[6], M[7], M[8], 0, k.h, k.h, k.h, 0], i * 20);
+  });
+  device.queue.writeBuffer(cBuf, 0, cData);
+}
+
+function render() {
+  if (!gpuReady) return;
+  resize(false);
+  if (geomDirty || !vBuf) rebuildGeometry();
+  skin();
+  device.queue.writeBuffer(vBuf, 0, vData);
+  writeUniforms();
+  const showKnife = (ui.tool === 'knife' && (hover || (drag && drag.mode === 'stroke'))) || (anim && anim.kind === 'knife');
+  const showCutter = (ui.tool === 'cutter' && (hover || cutterParked)) || (anim && anim.kind === 'stamp');
+  const drawTools = pass => {
+    if (showKnife) { pass.setVertexBuffer(0, knifeGeo.vb); pass.setIndexBuffer(knifeGeo.ib, 'uint32'); pass.drawIndexed(knifeGeo.n); }
+    if (showCutter) { const g = cutterGeo[anim && anim.kind === 'stamp' ? anim.plan.shape : ui.shape]; pass.setVertexBuffer(0, g.vb); pass.setIndexBuffer(g.ib, 'uint32'); pass.drawIndexed(g.n); }
+  };
+  const enc = device.createCommandEncoder();
+  const ps = enc.beginRenderPass({
+    colorAttachments: [{ view: sceneTex.createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.93, g: 0.92, b: 0.88, a: 1 } }],
+    depthStencilAttachment: { view: sceneDepth.createView(), depthLoadOp: 'clear', depthStoreOp: 'store', depthClearValue: 1 },
+  });
+  ps.setBindGroup(0, bg0);
+  ps.setPipeline(pipes.bg); ps.draw(3);
+  ps.setPipeline(pipes.toolScene); drawTools(ps);
+  ps.end();
+  const pm = enc.beginRenderPass({
+    colorAttachments: [{ view: msaaTex.createView(), resolveTarget: ctx.getCurrentTexture().createView(), loadOp: 'clear', storeOp: 'discard', clearValue: { r: 0.93, g: 0.92, b: 0.88, a: 1 } }],
+    depthStencilAttachment: { view: depthTex.createView(), depthLoadOp: 'clear', depthStoreOp: 'discard', depthClearValue: 1 },
+  });
+  pm.setBindGroup(0, bg0); pm.setBindGroup(1, bg1);
+  pm.setPipeline(pipes.blit); pm.draw(3);
+  pm.setPipeline(pipes.tool); drawTools(pm);
+  pm.setPipeline(pipes.jello); pm.setVertexBuffer(0, vBuf); pm.setIndexBuffer(iBuf, 'uint32'); pm.drawIndexed(nIdx);
+  if (ui.mesh) { pm.setPipeline(pipes.wire); pm.setVertexBuffer(0, vBuf); pm.setIndexBuffer(eBuf, 'uint32'); pm.drawIndexed(nEdge); }
+  pm.end();
+  device.queue.submit([enc.finish()]);
+}
+const PAGE_LIN = hexLin('#EEEAE0');
+
+// ─── Interaction ──────────────────────────────────────────────────────
+const stage = $('#stage'), strokeLine = $('#strokeLine');
+let drag = null, stroke = [], lastPointer = { x: 0, y: 0 };
+const localPt = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+
+function updateHover(m) {
+  if (anim) return;
+  if (cutterParked) {
+    if (Math.hypot(m.x - cutterParked.x, m.y - cutterParked.y) < 10) return;
+    cutterParked = null;
+  }
+  const { o, d } = screenRay(m.x, m.y);
+  const hit = pick(o, d);
+  const p = hit ? hit.p : rayPlaneY(o, d, TOP);
+  hover = p ? { p, hit } : null;
+  if (!p) return;
+  if (ui.tool === 'knife' && !(drag && drag.mode === 'stroke')) {
+    const f = cutterFrame();
+    knife.M = [p[0], p[1] + 0.06, p[2]]; knife.u = f.right;
+  }
+  if (ui.tool === 'cutter') {
+    const f = cutterFrame();
+    cutter.P = [p[0], 0, p[2]]; cutter.by = p[1] + 0.08; cutter.right = f.right; cutter.fwd = f.fwd;
+  }
+}
+canvas.addEventListener('pointerdown', e => {
+  if (!gpuReady) return;
+  canvas.setPointerCapture(e.pointerId);
+  const m = localPt(e);
+  drag = { x0: m.x, y0: m.y, x: m.x, y: m.y, mode: null, moved: false };
+  if (e.button === 2 || e.shiftKey || anim) { drag.mode = 'orbit'; return; }
+  if (ui.tool === 'hand') {
+    const { o, d } = screenRay(m.x, m.y), h = pick(o, d);
+    drag.mode = h && startGrab(h, d) ? 'grab' : 'orbit';
+  } else if (ui.tool === 'knife') { drag.mode = 'stroke'; stroke = [m]; strokeLine.setAttribute('points', `${m.x},${m.y}`); }
+  else drag.mode = 'click';
+});
+canvas.addEventListener('pointermove', e => {
+  const m = localPt(e); lastPointer = m;
+  if (!gpuReady) return;
+  if (!drag) { updateHover(m); return; }
+  const dx = m.x - drag.x, dy = m.y - drag.y;
+  drag.x = m.x; drag.y = m.y;
+  if (Math.hypot(m.x - drag.x0, m.y - drag.y0) > 6) drag.moved = true;
+  if (drag.mode === 'click' && drag.moved) drag.mode = 'orbit';
+  if (drag.mode === 'orbit') {
+    cam.yaw -= dx * 0.006; cam.pitch = clamp(cam.pitch + dy * 0.005, 0.18, 1.25);
+  } else if (drag.mode === 'grab') {
+    const { o, d } = screenRay(m.x, m.y); moveGrab(o, d);
+  } else if (drag.mode === 'stroke') {
+    stroke.push(m);
+    strokeLine.setAttribute('points', stroke.map(p => `${p.x},${p.y}`).join(' '));
+    const hits = strokeHits(stroke);
+    if (hits.length >= 2) {
+      const A = hits[0].p, B = hits[hits.length - 1].p;
+      let u = norm([B[0] - A[0], 0, B[2] - A[2]]);
+      if (worldToScreen(add(A, u))[0] < worldToScreen(A)[0]) u = scale(u, -1);
+      let top = 0; for (const h of hits) top = Math.max(top, h.p[1]);
+      knife.u = u; knife.M = [(A[0] + B[0]) / 2, top + 0.06, (A[2] + B[2]) / 2];
+    }
+  } else if (drag.mode === 'click') updateHover(m);
+});
+function strokeHits(pts) {
+  const hits = [], step = Math.max(1, Math.floor(pts.length / 40));
+  for (let i = 0; i < pts.length; i += step) { const { o, d } = screenRay(pts[i].x, pts[i].y), h = pick(o, d); if (h) hits.push(h); }
+  if (pts.length > 1) { const l = pts[pts.length - 1], { o, d } = screenRay(l.x, l.y), h = pick(o, d); if (h) hits.push(h); }
+  return hits;
+}
+canvas.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const m = localPt(e), d = drag; drag = null;
+  if (d.mode === 'grab') endGrab();
+  else if (d.mode === 'click' && !d.moved) doStamp(m);
+  else if (d.mode === 'stroke') { finishStroke(); strokeLine.setAttribute('points', ''); }
+  updateHover(m);
+});
+canvas.addEventListener('pointercancel', () => { if (drag && drag.mode === 'grab') endGrab(); drag = null; strokeLine.setAttribute('points', ''); });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerleave', () => { if (!drag) hover = null; });
+canvas.addEventListener('dblclick', () => { Object.assign(cam, { yaw: 0.52, pitch: 0.62, dist: 8.6 }); });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (grab) twistGrab(e.deltaY * 0.004);
+  else cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.001), 4.5, 14);
+}, { passive: false });
+
+function finishStroke() {
+  if (stroke.length < 2 || Math.hypot(stroke[stroke.length - 1].x - stroke[0].x, stroke[stroke.length - 1].y - stroke[0].y) < 20) return;
+  const hits = strokeHits(stroke);
+  let A, B, crossed;
+  if (hits.length >= 2) {
+    A = hits[0].p; B = hits[hits.length - 1].p;
+    if (Math.hypot(B[0] - A[0], B[2] - A[2]) < 0.05) { // stroke along the view: use the screen ends on the hit height
+      const f = stroke[0], l = stroke[stroke.length - 1], r0 = screenRay(f.x, f.y), r1 = screenRay(l.x, l.y);
+      A = rayPlaneY(r0.o, r0.d, A[1]) || A; B = rayPlaneY(r1.o, r1.d, A[1]) || B;
+    }
+    crossed = [...new Set(hits.map(h => h.piece))];
+  } else {
+    const f = stroke[0], l = stroke[stroke.length - 1], r0 = screenRay(f.x, f.y), r1 = screenRay(l.x, l.y);
+    A = rayPlaneY(r0.o, r0.d, 0.45); B = rayPlaneY(r1.o, r1.d, 0.45);
+    if (!A || !B) return;
+    const u = norm([B[0] - A[0], 0, B[2] - A[2]]), n = [-u[2], 0, u[0]], L = Math.hypot(B[0] - A[0], B[2] - A[2]);
+    crossed = pieces.filter(pc => {
+      let lo = Infinity, hi = -Infinity; const x = pc.sim.x;
+      for (let i = 0; i < x.length; i += 3) {
+        const rx = x[i] - A[0], rz = x[i + 2] - A[2], a = rx * u[0] + rz * u[2];
+        if (a < -0.1 || a > L + 0.1) continue;
+        const d = rx * n[0] + rz * n[2]; lo = Math.min(lo, d); hi = Math.max(hi, d);
+      }
+      return lo < -0.03 && hi > 0.03;
+    });
+  }
+  if (!crossed.length) { toast('Draw across the cake to slice it.'); return; }
+  const plan = planCut(A, B, crossed);
+  if (plan) startCut(plan);
+}
+function doStamp(m) {
+  const { o, d } = screenRay(m.x, m.y);
+  const hit = pick(o, d), p = hit ? hit.p : rayPlaneY(o, d, 0.45);
+  if (!p) { toast('Place the cutter over the cake.'); return; }
+  const f = cutterFrame();
+  const plan = planStamp([p[0], 0, p[2]], f.right, f.fwd);
+  if (plan) { cutter.by = (hit ? hit.p[1] : TOP) + 0.08; startStamp(plan); }
+}
+
+// ─── UI ───────────────────────────────────────────────────────────────
+let toastT = 0;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function swatch(f) {
+  const pos = [[5, 6, 12], [22, 8, -18], [8, 23, 25], [24, 24, -8]];
+  return `<svg viewBox="0 0 40 40"><rect width="40" height="40" fill="${f.base}"/>` +
+    pos.map(([x, y, a], i) => `<rect x="${x}" y="${y}" width="11" height="11" fill="${f.cubes[i]}" opacity=".85" transform="rotate(${a} ${x + 5} ${y + 5})"/>`).join('') + '</svg>';
+}
+function setFlavour(k) {
+  ui.flavour = k; const f = FLAVOURS[k];
+  $('#flavName').textContent = f.name; $('#flavCream').textContent = f.cream;
+  $('#flav').innerHTML = Object.entries(FLAVOURS).map(([key, v]) =>
+    `<button class="card ${key === k ? 'on' : ''}" data-f="${key}" aria-pressed="${key === k}">${swatch(v)}<b>${v.name}</b><i>${v.cream}</i></button>`).join('');
+}
+$('#flav').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) setFlavour(c.dataset.f); });
+function setTool(t) {
+  ui.tool = t; if (grab) endGrab();
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('#hint').textContent = HINTS[t];
+  $('#shapes').classList.toggle('dim', t !== 'cutter');
+  stage.dataset.tool = t;
+  cutterParked = null;
+  updateHover(lastPointer);
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) setTool(b.dataset.t); });
+function setShape(s) {
+  ui.shape = s;
+  document.querySelectorAll('#shapePills .pill').forEach(b => b.classList.toggle('on', +b.dataset.s === s));
+}
+$('#shapePills').addEventListener('click', e => { const b = e.target.closest('.pill'); if (b) { setShape(+b.dataset.s); if (ui.tool !== 'cutter') setTool('cutter'); } });
+$('#firm').addEventListener('input', e => ui.firm = e.target.value / 100);
+$('#damp').addEventListener('input', e => ui.damp = e.target.value / 100);
+function setPaused(p) { ui.paused = p; $('#bPause').textContent = p ? 'Play' : 'Pause'; $('#bPause').classList.toggle('on', p); $('#badge').textContent = p ? 'WebGPU · Paused' : 'WebGPU · Live'; }
+$('#bPause').addEventListener('click', () => setPaused(!ui.paused));
+$('#bNudge').addEventListener('click', nudge);
+$('#bReset').addEventListener('click', resetCake);
+$('#cQuarter').addEventListener('change', e => ui.quarter = e.target.checked);
+$('#cMesh').addEventListener('change', e => ui.mesh = e.target.checked);
+function cubesExposed() {
+  let n = 0;
+  for (const k of cubes) for (const pc of pieces) if (Math.abs(sampleGrid(pc.sdf, PG, k.c[0], k.c[2])) < k.h * 1.1) n++;
+  return n;
+}
+function updateReadouts() { $('#rPieces').textContent = pieces.length; $('#rCubes').textContent = cubesExposed(); }
+
+// ─── Screens ──────────────────────────────────────────────────────────
+const title = $('#title');
+let busy = false;
+function fitTitle() {
+  title.style.transition = 'none'; title.style.transform = 'none';
+  title.style.fontSize = '100px';
+  title.style.fontSize = (100 * (innerWidth - 32) / title.scrollWidth) + 'px';
+  if (document.body.classList.contains('loading')) {
+    const r = title.getBoundingClientRect(), s = 0.36;
+    title.style.transform = `translate(${innerWidth / 2 - (r.left + r.width / 2)}px,${innerHeight / 2 - (r.top + r.height / 2)}px) scale(${s})`;
+  }
+  title.offsetWidth; title.style.transition = '';
+}
+function showScreen(name) {
+  const ws = name === 'workspace';
+  if (!document.body.classList.contains('loaded') || ws === document.body.classList.contains('ws')) return;
+  document.body.classList.toggle('ws', ws);
+}
+function go(ws) {
+  if (busy) return;
+  if (!document.body.classList.contains('loaded')) return;
+  if (ws === document.body.classList.contains('ws')) return;
+  busy = true; showScreen(ws ? 'workspace' : 'hero');
+  setTimeout(() => busy = false, 950);
+}
+const hero = $('#hero');
+hero.addEventListener('wheel', e => { if (e.deltaY > 15) go(true); }, { passive: true });
+let ty = 0;
+hero.addEventListener('touchstart', e => ty = e.touches[0].clientY, { passive: true });
+hero.addEventListener('touchend', e => { if (ty - e.changedTouches[0].clientY > 40) go(true); });
+$('#cta').addEventListener('click', () => go(true));
+$('#back').addEventListener('click', () => go(false));
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
+  const ws = document.body.classList.contains('ws');
+  if (['ArrowDown', 'PageDown', 'Enter'].includes(e.key) && !ws) { e.preventDefault(); go(true); return; }
+  if (['ArrowUp', 'PageUp', 'Escape'].includes(e.key) && ws) { e.preventDefault(); go(false); return; }
+  if (!ws || !gpuReady) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); setPaused(!ui.paused); }
+  else if (k === 'n') nudge();
+  else if (k === 'r') resetCake();
+  else if (k === 'h') setTool('hand');
+  else if (k === 'k') setTool('knife');
+  else if (k === 'c') setTool('cutter');
+  else if ('1234'.includes(k) && k.length === 1) { setShape(+k - 1); if (ui.tool !== 'cutter') setTool('cutter'); }
+});
+function setStatus(s) { $('#status').textContent = s; }
+function showNoGPU(msg) {
+  document.body.classList.add('nogpu');
+  const st = $('#status'); st.innerHTML = 'This cake needs WebGPU.<small></small>'; st.querySelector('small').textContent = msg;
+  $('#stageMsgText').textContent = msg;
+  $('#badge').textContent = 'WebGPU · Unavailable';
+}
+
+// ─── Main loop ────────────────────────────────────────────────────────
+let last = performance.now(), acc = 0;
+function loop(now) {
+  const dtReal = Math.min(0.1, (now - last) / 1000); last = now;
+  const active = document.body.classList.contains('ws');
+  if (gpuReady && active) {
+    if (!ui.paused) {
+      acc += dtReal * (ui.quarter ? 0.25 : 1);
+      let n = 0;
+      while (acc >= DT && n++ < 4) { step(); acc -= DT; }
+      if (acc > DT) acc = 0;
+    }
+    updateCamera(dtReal);
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+
+// Test hook: step animations deterministically and inspect the scene.
+window.jello = {
+  get sim() { return pieces.map(p => ({ id: p.id, slot: p.slot, particles: p.sim.n, tets: p.sim.m, verts: p.rend.nv, area: +p.area.toFixed(3), centroid: p.c.map(v => +v.toFixed(3)), up: +p.R[4].toFixed(3) })); },
+  camera: cam, pick: (px, py) => { const { o, d } = screenRay(px, py); const h = pick(o, d); return h && { piece: h.piece.id, point: h.p }; },
+  planCut: (a, b) => planCut(a, b, pieces.slice()), startCut,
+  planStamp: (x, z, shape = ui.shape) => { setShape(shape); const f = cutterFrame(); return planStamp([x, 0, z], f.right, f.fwd); }, startStamp,
+  advance(seconds) { const n = Math.round(seconds / DT); for (let i = 0; i < n; i++) step(); updateCamera(seconds); render(); },
+  stats: () => ({ pieces: pieces.length, cubesExposed: cubesExposed(), anim: anim && anim.kind }),
+  showScreen, setTool, setFlavour, nudge, reset: resetCake,
+  get pieces() { return pieces; },
+};
+
+async function boot() {
+  await document.fonts.ready;
+  fitTitle();
+  addEventListener('resize', () => { fitTitle(); });
+  new ResizeObserver(() => { if (gpuReady) render(); }).observe(stage);
+  setFlavour('classic'); setTool('knife');
+  setStatus('Setting the jello…');
+  await nextFrame();
+  try {
+    buildCutterShapes();
+    makeCubes();
+    await initGPU();
+  } catch (err) {
+    console.error(err);
+    showNoGPU(err instanceof GpuError ? err.message : 'WebGPU couldn’t start: ' + (err && err.message || err));
+    return;
+  }
+  setStatus('Cutting the cubes…');
+  await nextFrame();
+  writeCubes();
+  resetCake();
+  // warm up the cutting code with a throwaway cut and stamp, so the first real one is quick
+  planCut([-1.6, TOP, 0.1], [1.6, TOP, -0.1], pieces.slice());
+  planStamp([0.3, 0, 0.3], [1, 0, 0], [0, 0, -1]);
+  setStatus('Warming the lights…');
+  await nextFrame();
+  updateCamera(0);
+  for (let i = 0; i < 3; i++) { step(); render(); await nextFrame(); }
+  document.body.classList.replace('loading', 'loaded');
+  title.style.transform = 'none';
+  last = performance.now();
+  requestAnimationFrame(loop);
+}
+boot();
+</script>
+</body>
+</html>

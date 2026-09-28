@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broken Glass Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEEAE0; --ink:#1E1B18; --line:#1E1B18; --muted:#6B655C;
+    --tab:#D9533B; --pill:#5E8C8A;
+    --serif:"Instrument Serif","Big Caslon",Georgia,serif;
+    --body:"Iowan Old Style","Palatino","Times New Roman",serif;
+    --grot:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.7,0,.2,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  .screens{height:200dvh;transition:transform .9s var(--ease)}
+  body.ws .screens{transform:translateY(-100dvh)}
+  section.screen{height:100dvh;position:relative;overflow:hidden}
+
+  /* ── Screen 1: hero ── */
+  .hero{padding:0 16px}
+  .title{font-family:var(--serif);font-weight:400;line-height:.92;white-space:nowrap;letter-spacing:-.015em;
+         display:inline-block;margin-top:28px;transform-origin:50% 50%;filter:url(#grain);
+         transition:transform 1.2s var(--ease)}
+  .status{position:absolute;left:0;right:0;top:calc(50% + 7vw);text-align:center;font-family:var(--serif);
+          font-style:italic;font-size:19px;color:var(--muted);transition:opacity .4s}
+  .intro{display:grid;grid-template-columns:1.6fr 1fr;gap:40px;padding:9vh 12px 0;align-items:start}
+  .intro p{font-size:16px;line-height:1.6;max-width:620px}
+  .intro p b{font-family:var(--grot);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+  .caption{font-family:var(--serif);font-style:italic;font-size:24px;line-height:1.3;text-align:right}
+  .fade{opacity:0;transform:translateY(10px);transition:opacity .8s .9s,transform .8s .9s var(--ease)}
+  .cta{position:absolute;left:50%;bottom:34px;transform:translate(-50%,10px);display:flex;flex-direction:column;align-items:center;gap:6px;
+       font-family:var(--serif);font-style:italic;font-size:22px}
+  .cta span{font-style:normal;font-size:20px;animation:bob 2.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+    body.loaded .fade{opacity:1;transform:none}
+  body.loaded .cta{transform:translate(-50%,0)}
+  body.loaded .status{opacity:0}
+
+  /* ── Screen 2: workspace ── */
+  .work{display:grid;grid-template-columns:1fr 420px}
+  .stage{position:relative;display:flex;align-items:center;justify-content:center}
+  .stage svg{width:min(88%,760px);height:auto}
+  .back{position:absolute;top:18px;left:22px;font-family:var(--serif);font-style:italic;font-size:20px}
+  .badge{position:absolute;top:18px;right:22px;background:var(--pill);color:#fff;font-family:var(--grot);
+         font-weight:600;font-size:12px;padding:5px 11px;border-radius:99px}
+  .hint{position:absolute;left:22px;bottom:18px;font-family:var(--serif);font-style:italic;font-size:21px}
+  .ph{position:absolute;right:22px;bottom:20px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+  .panel{border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}
+  .tabs{display:flex;gap:8px;padding:22px 22px 0;border-bottom:1px solid var(--line)}
+  .tab{flex:1;text-align:left;padding:9px 14px 7px;font-size:17px;border:1px solid var(--line);border-bottom:0;
+       border-radius:12px 12px 0 0;margin-bottom:-1px;background:var(--paper)}
+  .tab.on{background:var(--tab);border-color:var(--tab);color:#fff}
+  .tab kbd{font-family:var(--mono);font-size:10px;opacity:.6;margin-left:6px}
+  .cell{padding:20px 22px;border-bottom:1px solid var(--line)}
+  .head h2{font-family:var(--serif);font-weight:400;font-size:40px;line-height:1}
+  .head i{font-size:15px;color:var(--muted)}
+  .label{font-family:var(--grot);font-weight:700;font-size:14px;margin-bottom:12px;display:flex;justify-content:space-between}
+  .label span{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted)}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ink);border-radius:99px;
+        padding:6px 12px;font-family:var(--grot);font-size:12px;font-weight:500}
+  .pill.on{background:var(--ink);color:var(--paper)}
+  .pill svg{width:14px;height:14px}
+  .tag{border-color:#8f887d;color:#4a453f;padding:3px 9px;font-size:11px}
+  .dim{opacity:.35;transition:opacity .3s}
+  .flav{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .card{text-align:left}
+  .card svg{border:1px solid var(--ink);border-radius:6px;width:100%;aspect-ratio:1;display:block;margin-bottom:8px}
+  .card.on svg{outline:2px solid var(--tab);outline-offset:2px}
+  .card b{font-family:var(--grot);font-size:13px;display:block}
+  .card i{font-size:13px;color:var(--muted)}
+  .slider{margin-bottom:14px}.slider:last-child{margin-bottom:0}
+  .slider .t{font-size:15px;margin-bottom:9px}
+  .track{position:relative;height:1px;background:var(--ink)}
+  .track i{position:absolute;top:-7px;width:15px;height:15px;border-radius:50%;background:var(--paper);border:1px solid var(--ink)}
+  .ends{display:flex;justify-content:space-between;font-style:italic;font-size:13px;color:var(--muted);margin-top:6px}
+  .spec{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  .spec td{padding:9px 0;border-bottom:1px solid #cfc8bb}
+  .spec tr:last-child td{border-bottom:0}
+  .spec td:last-child{text-align:right;font-family:var(--grot);font-weight:700;font-size:18px}
+  .spec td:first-child{text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .foot{margin-top:auto;padding:16px 22px;font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .foot b{color:var(--ink);font-weight:500}
+
+  .note{position:fixed;left:50%;top:8px;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em;pointer-events:none}
+
+  @media (max-width:860px){
+    .intro{grid-template-columns:1fr;gap:14px}
+    .caption{text-align:left}
+    .work{grid-template-columns:1fr;grid-template-rows:50dvh 1fr}
+    .panel{border-left:0;border-top:1px solid var(--line)}
+    .tab{padding:12px 12px 10px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition-duration:.01s!important;animation:none!important}
+  }
+</style>
+</head>
+<body class="loading">
+
+<svg width="0" height="0" style="position:absolute">
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="4" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.45" result="mask"/>
+    <feComposite in="SourceGraphic" in2="mask" operator="in"/>
+  </filter>
+</svg>
+
+<div class="screens">
+  <!-- Screen 1: loading → hero -->
+  <section class="screen hero" id="hero">
+    <h1 class="title" id="title">Broken Glass.</h1>
+    <div class="status" id="status">Setting the jello…</div>
+    <div class="intro fade">
+      <p><b>Broken Glass</b> is a study of the potluck classic: cubes of cherry, lime, orange and berry-blue jello set in a creamy condensed-milk layer on a graham-cracker crust. Grab it and it wobbles. Slice it and every cut face becomes a new mosaic. Stamp it with a Jiggler cutter and lift the shape right out.</p>
+      <div class="caption">Stained glass you can eat.<br>Wobbly on purpose.<br>A potluck favourite, circa ’96.</div>
+    </div>
+    <button class="cta fade" id="cta">Get cooking<span>↓</span></button>
+  </section>
+
+  <!-- Screen 2: workspace -->
+  <section class="screen work" id="work">
+    <div class="stage">
+      <button class="back" id="back">↑ Broken Glass</button>
+      <div class="badge">WebGPU · Live</div>
+      <svg id="stageCake"></svg>
+      <div class="hint" id="hint">Drag across the cake to slice it.</div>
+      <div class="ph">Placeholder · 3D scene renders here</div>
+    </div>
+
+    <aside class="panel">
+      <nav class="tabs" id="tabs">
+        <button class="tab" data-t="hand">Hand<kbd>H</kbd></button>
+        <button class="tab on" data-t="knife">Knife<kbd>K</kbd></button>
+        <button class="tab" data-t="cutter">Cutter<kbd>C</kbd></button>
+      </nav>
+
+      <div class="cell head">
+        <h2 id="flavName">Classic</h2>
+        <i id="flavCream">Condensed milk</i>
+      </div>
+
+      <div class="cell" id="shapes">
+        <div class="label">Cutter shape <span>1–4</span></div>
+        <div class="pills">
+          <button class="pill on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z"/></svg>Star</button>
+          <button class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.2 4.2 0 0112 7.6 4.2 4.2 0 0119.5 10c0 5.4-7.5 10-7.5 10z"/></svg>Heart</button>
+          <button class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 17c2-1 3-4 5-5s6-1 8-3 2-5 4-5 1 3-1 4-1 4-1 6v4h-2v-3h-4v3H9v-3l-3 1-3 1z"/></svg>Dino</button>
+          <button class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13 2L5 13h6l-1 9 8-11h-6z"/></svg>Bolt</button>
+        </div>
+      </div>
+
+      <div class="cell">
+        <div class="label">Flavour</div>
+        <div class="flav" id="flav"></div>
+      </div>
+
+      <div class="cell">
+        <div class="label">Feel</div>
+        <div class="slider"><div class="t">Firmness</div><div class="track"><i style="left:38%"></i></div><div class="ends"><span>wiggly</span><span>set</span></div></div>
+        <div class="slider"><div class="t">Internal damping</div><div class="track"><i style="left:55%"></i></div><div class="ends"><span>bouncy</span><span>syrupy</span></div></div>
+      </div>
+
+      <div class="cell">
+        <table class="spec">
+          <tr><td>Pieces</td><td>1</td></tr>
+          <tr><td>Cubes exposed</td><td>18</td></tr>
+        </table>
+      </div>
+
+      <div class="cell">
+        <div class="pills">
+          <button class="pill">Give it a nudge</button><button class="pill">Reset</button><button class="pill">Pause</button>
+          <span class="pill tag">☐ ¼ speed</span><span class="pill tag">☐ Show mesh</span>
+        </div>
+      </div>
+
+      <div class="foot">
+        <span><b>Space</b> pause · <b>N</b> nudge · <b>R</b> reset</span>
+        <span>Inside the experiment +</span>
+      </div>
+    </aside>
+  </section>
+</div>
+
+<div class="note">MOCKUP · CAKE IS A FLAT PLACEHOLDER</div>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const FLAVOURS = {
+  classic:  { name: 'Classic',  cream: 'Condensed milk', cubes: ['#C8102E', '#5DAA2F', '#F07F1A', '#1F6FD1'], base: '#F4EEE2', side: '#E6DECF' },
+  tropical: { name: 'Tropical', cream: 'Coconut',        cubes: ['#F2C12E', '#E86A92', '#F08A24', '#F5D547'], base: '#F7F3EA', side: '#EAE3D4' },
+  berry:    { name: 'Berry',    cream: 'Vanilla',        cubes: ['#B0174F', '#6A2C8C', '#2F7FD8', '#6E0F2B'], base: '#F3EDE0', side: '#E4DCCB' },
+};
+const HINTS = {
+  hand: 'Grab the cake and give it a wobble.',
+  knife: 'Drag across the cake to slice it.',
+  cutter: 'Click a flat piece to stamp a shape.',
+};
+
+// Placeholder cake drawing (front, side, top, crust, suspended cubes).
+function drawCake(svg, f, id) {
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', '90 110 460 250');
+  const el = (t, a, p = svg) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+  let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const defs = el('defs', {});
+  const cf = el('clipPath', { id: id + 'f' }, defs); el('rect', { x: 150, y: 200, width: 250, height: 128 }, cf);
+  const cs = el('clipPath', { id: id + 's' }, defs); el('rect', { x: 0, y: 200, width: 90, height: 128 }, cs);
+  const g = el('linearGradient', { id: id + 'g', x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+  el('stop', { offset: 0, 'stop-color': '#FFFDF7' }, g); el('stop', { offset: 1, 'stop-color': f.side }, g);
+  const bl = el('filter', { id: id + 'b', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs); el('feGaussianBlur', { stdDeviation: 12 }, bl);
+  el('ellipse', { cx: 325, cy: 320, rx: 200, ry: 24, fill: '#7a5a4a', opacity: .22, filter: `url(#${id}b)` });
+  const face = (clip, transform, w, cream) => {
+    const inner = el('g', { 'clip-path': `url(#${id}${clip})` }, el('g', { transform }));
+    const x0 = clip === 'f' ? 150 : 0;
+    el('rect', { x: x0, y: 200, width: w, height: 128, fill: cream }, inner);
+    for (let i = 0; i < (clip === 'f' ? 16 : 7); i++) {
+      const sz = 16 + r() * 16, x = x0 + r() * w, y = 205 + r() * 88;
+      el('rect', { x: x - sz / 2, y: y - sz / 2, width: sz, height: sz, rx: 1.5, fill: f.cubes[i % 4], opacity: .82,
+        transform: `rotate(${(r() - .5) * 70} ${x} ${y})` }, inner);
+    }
+    el('rect', { x: x0, y: 306, width: w, height: 22, fill: '#B98A55' }, inner);
+  };
+  face('f', '', 250, f.base);
+  face('s', 'matrix(1,-0.6,0,1,400,0)', 90, f.side);
+  el('path', { d: 'M150 200 L240 146 L490 146 L400 200 Z', fill: `url(#${id}g)` });
+  el('path', { d: 'M190 186 L250 152 L330 152', stroke: '#fff', 'stroke-width': 3, fill: 'none', opacity: .8, 'stroke-linecap': 'round' });
+}
+
+function swatch(f) {
+  const cols = f.cubes, pos = [[5, 6, 12], [22, 8, -18], [8, 23, 25], [24, 24, -8]];
+  return `<svg viewBox="0 0 40 40"><rect width="40" height="40" fill="${f.base}"/>` +
+    pos.map(([x, y, a], i) => `<rect x="${x}" y="${y}" width="11" height="11" fill="${cols[i]}" opacity=".85" transform="rotate(${a} ${x + 5} ${y + 5})"/>`).join('') + '</svg>';
+}
+
+let flavour = 'classic';
+function setFlavour(k) {
+  flavour = k; const f = FLAVOURS[k];
+  drawCake(document.getElementById('stageCake'), f, 's');
+  document.getElementById('flavName').textContent = f.name;
+  document.getElementById('flavCream').textContent = f.cream;
+  document.getElementById('flav').innerHTML = Object.entries(FLAVOURS).map(([key, v]) =>
+    `<button class="card ${key === k ? 'on' : ''}" data-f="${key}">${swatch(v)}<b>${v.name}</b><i>${v.cream}</i></button>`).join('');
+}
+document.getElementById('flav').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) setFlavour(c.dataset.f); });
+
+function setTool(t) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.getElementById('hint').textContent = HINTS[t];
+  document.getElementById('shapes').classList.toggle('dim', t !== 'cutter');
+}
+document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) setTool(b.dataset.t); });
+
+// Title: fit to page width, then start it small and centred for the loading screen.
+const title = document.getElementById('title');
+function fitTitle() {
+  title.style.transition = 'none'; title.style.transform = 'none';
+  title.style.fontSize = '100px';
+  title.style.fontSize = (100 * (innerWidth - 32) / title.scrollWidth) + 'px';
+  if (document.body.classList.contains('loading')) {
+    const r = title.getBoundingClientRect(), s = .36;
+    const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight / 2 - (r.top + r.height / 2);
+    title.style.transform = `translate(${dx}px,${dy}px) scale(${s})`;
+  }
+  title.offsetWidth; title.style.transition = '';
+}
+
+// Fake loading steps (the real build ties these to WebGPU setup).
+const steps = ['Setting the jello…', 'Cutting the cubes…', 'Warming the lights…'];
+function load() {
+  const st = document.getElementById('status');
+  steps.forEach((s, i) => setTimeout(() => st.textContent = s, i * 750));
+  setTimeout(() => {
+    document.body.classList.replace('loading', 'loaded');
+    title.style.transform = 'none';
+  }, steps.length * 750 + 200);
+}
+
+// Two screens: scroll, swipe, key or click the cake to enter; the back link returns.
+let busy = false;
+function go(ws) {
+  if (busy || !document.body.classList.contains('loaded')) return;
+  if (ws === document.body.classList.contains('ws')) return;
+  busy = true; document.body.classList.toggle('ws', ws);
+  setTimeout(() => busy = false, 950);
+}
+const hero = document.getElementById('hero');
+hero.addEventListener('wheel', e => { if (e.deltaY > 15) go(true); }, { passive: true });
+let ty = 0;
+hero.addEventListener('touchstart', e => ty = e.touches[0].clientY, { passive: true });
+hero.addEventListener('touchend', e => { if (ty - e.changedTouches[0].clientY > 40) go(true); });
+document.getElementById('cta').addEventListener('click', () => go(true));
+document.getElementById('back').addEventListener('click', () => go(false));
+addEventListener('keydown', e => {
+  if (['ArrowDown', 'PageDown', 'Enter'].includes(e.key)) go(true);
+  if (['ArrowUp', 'PageUp', 'Escape'].includes(e.key)) go(false);
+  const t = { h: 'hand', k: 'knife', c: 'cutter' }[e.key.toLowerCase()];
+  if (t && document.body.classList.contains('ws')) setTool(t);
+});
+
+setFlavour('classic');
+setTool('knife');
+addEventListener('resize', fitTitle);
+document.fonts.ready.then(() => { fitTitle(); requestAnimationFrame(load); });
+</script>
+</body>
+</html>
