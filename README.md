@@ -53,8 +53,8 @@ Then open <http://localhost:8000/>.
 
 ## Docs
 
-- [`docs/prompt.md`](docs/prompt.md): the full build prompt (design, physics, tools).
-- [`docs/mockup.html`](docs/mockup.html): the layout mockup for the hero and workspace screens.
+- [`docs/prompt.md`](docs/prompt.md): the full build prompt, kept in sync with the app, so it can be rebuilt from scratch (design, physics, tools, toppings, sharing).
+- [`docs/mockup.html`](docs/mockup.html): the early layout mockup for the hero and workspace screens, from before the build (no Decorate or Share).
 
 ## Next
 
