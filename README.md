@@ -1,6 +1,6 @@
 # Broken Glass
 
-An interactive, physically simulated 90s "broken glass" jello cake: jewel-coloured jello cubes set in a creamy condensed-milk layer on a graham-cracker crust. Wobble it, slice it with a chef's knife, stamp shapes out with Jiggler cutters, and decorate it with whipped cream, sprinkles and cherries.
+An interactive, physically simulated 90s "broken glass" jello cake: jewel-coloured jello cubes set in a creamy condensed-milk layer on a graham-cracker crust. Wobble it, slice it with a chef's knife, stamp shapes out with Jiggler cutters, decorate it with whipped cream, sprinkles and cherries, then serve it on a dish and send someone a little video of it wobbling.
 
 A single self-contained HTML file. The soft-body physics runs in JavaScript; rendering is WebGPU + WGSL.
 
@@ -36,6 +36,7 @@ Then open <http://localhost:8000/broken-glass-jello.html>.
   - *Cherry:* click to drop one. It stays upright on cream and topples onto its side on bare jello.
   - *Sprinkles:* hold and shake the jar. The faster you shake, the more fall, and they stick wherever they land, table included.
   - Toppings ride the wobble and stay with their piece when you cut or stamp it.
+- **Share:** press *Share your creation*, click the pieces you want to serve (they glow), pick a platter, plate or cup, and add a note. *Serve & record* lifts each piece onto the dish, and the drop and jiggle are recorded as a short portrait video card to send or download. *Serve again* puts the pieces back so you can try another dish.
 - Drag on empty space (or right-drag) to orbit. The wheel zooms, and double-click resets the camera.
 
 ## How it works
