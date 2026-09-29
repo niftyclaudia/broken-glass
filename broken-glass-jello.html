@@ -104,6 +104,28 @@
   input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--paper);border:1px solid var(--ink);margin-top:-7px}
   input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--paper);border:1px solid var(--ink)}
+  #note{width:100%;margin:14px 0 12px;border:0;border-bottom:1px solid var(--ink);background:transparent;resize:none;
+        font-family:var(--serif);font-style:italic;font-size:19px;line-height:1.3;color:var(--ink);padding:4px 0;outline:none}
+  #note::placeholder{color:var(--muted)}
+  .send{width:100%;padding:11px 14px;border-radius:12px;background:var(--tab);color:#fff;font-family:var(--serif);font-size:19px;text-align:center}
+  .send:disabled{opacity:.5;cursor:default}
+  .rec{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:8px;z-index:3;
+       font-family:var(--grot);font-size:12px;font-weight:600;background:var(--paper);padding:5px 12px;border-radius:99px;border:1px solid var(--ink)}
+  .rec i{width:8px;height:8px;border-radius:50%;background:var(--tab)}
+  body.recording .rec{display:flex}
+  body.recording .panel,body.recording .back{pointer-events:none;opacity:.5}
+  .sheet{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(30,27,24,.35);padding:16px}
+  .sheet[hidden]{display:none}
+  .sheet-card{background:var(--paper);border:1px solid var(--ink);border-radius:14px;padding:16px;max-width:420px;width:100%;box-shadow:6px 6px 0 var(--pill)}
+  .sheet-card video{width:100%;display:block;border-radius:8px;background:var(--paper)}
+  .sheet-actions{display:flex;gap:8px;margin-top:14px;justify-content:center;flex-wrap:wrap}
+  .sheet-actions a{text-decoration:none;color:inherit}
+  .sheet-actions [hidden]{display:none}
+  .share-only{display:none}
+  body.sharing .share-only{display:block}
+  body.sharing .panel > .cell:not(.share-only),body.sharing .tabs{display:none}
+  .backlink{font-family:var(--serif);font-style:italic;font-size:17px;margin-bottom:10px;display:block}
+  .step{font-size:14px;color:var(--muted);margin:-4px 0 10px}
   .spec{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
   .spec td{padding:9px 0;border-bottom:1px solid #cfc8bb}
   .spec tr:last-child td{border-bottom:0}
@@ -169,6 +191,7 @@
       <div class="badge" id="badge">WebGPU · Live</div>
       <div class="toast" id="toast"></div>
       <div class="hint" id="hint">Drag across the cake to slice it.</div>
+      <div class="rec" id="rec"><i></i>Recording</div>
       <div class="stage-msg" id="stageMsg"><div><b>This cake needs WebGPU.</b><p id="stageMsgText"></p></div></div>
     </div>
 
@@ -179,6 +202,30 @@
         <button class="tab" data-t="cutter">Cutter<kbd>C</kbd></button>
         <button class="tab" data-t="decorate">Decorate<kbd>D</kbd></button>
       </nav>
+
+      <div class="cell head share-only">
+        <button class="backlink" id="bBackKitchen">← Back to the kitchen</button>
+        <h2>Serve it up</h2>
+        <i>Pick your pieces, choose a dish, add a note.</i>
+      </div>
+      <div class="cell share-only">
+        <div class="label">1 · Pieces <span id="pickCount">none picked</span></div>
+        <p class="step">Click pieces on the table to pick them.</p>
+        <div class="pills"><button class="pill" id="bPickAll">Pick all</button><button class="pill" id="bPickNone">Clear</button></div>
+      </div>
+      <div class="cell share-only">
+        <div class="label">2 · Dish</div>
+        <div class="flav" id="dishCards">
+          <button class="card on" data-d="stand"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#F6F0E4"/><path d="M6 17h28M8 17c0 2 4 3 12 3s12-1 12-3M20 20v9M13 33h14M20 29c-3 0-7 2-7 4M20 29c3 0 7 2 7 4" fill="none" stroke="#C98F86" stroke-width="1.6" stroke-linecap="round"/><rect x="13" y="10" width="9" height="7" fill="#F4EEE2" stroke="#B98A55"/><rect x="15" y="12" width="2.5" height="2.5" fill="#C8102E"/></svg><b>Platter</b><i>on a pedestal</i></button>
+          <button class="card" data-d="plate"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#F6F0E4"/><ellipse cx="20" cy="24" rx="15" ry="5.5" fill="none" stroke="#7DB39A" stroke-width="1.6"/><ellipse cx="20" cy="23.4" rx="8.5" ry="2.6" fill="none" stroke="#7DB39A" stroke-width="1.2"/><rect x="15" y="15" width="9" height="7" fill="#F4EEE2" stroke="#B98A55"/><rect x="19" y="17" width="2.5" height="2.5" fill="#1F6FD1"/></svg><b>Plate</b><i>scalloped</i></button>
+          <button class="card" data-d="cup"><svg viewBox="0 0 40 40"><rect width="40" height="40" fill="#F6F0E4"/><path d="M7 14h26c-1 8-6 12-13 12S8 22 7 14zM20 26v6M14 34h12" fill="none" stroke="#C9A93E" stroke-width="1.6" stroke-linecap="round"/><rect x="15" y="10" width="9" height="7" fill="#F4EEE2" stroke="#B98A55"/><rect x="17" y="12" width="2.5" height="2.5" fill="#5DAA2F"/></svg><b>Cup</b><i>footed glass</i></button>
+        </div>
+      </div>
+      <div class="cell share-only">
+        <div class="label">3 · Note</div>
+        <textarea id="note" maxlength="120" rows="2" placeholder="Write a little note…" aria-label="Note to send with your creation"></textarea>
+        <button class="send" id="bServe" disabled>Serve &amp; record</button>
+      </div>
 
       <div class="cell head">
         <h2 id="flavName">Classic</h2>
@@ -202,6 +249,10 @@
           <button class="pill" data-p="sprinkles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7l3 1M14 5l1 3M18 11l2-2M7 14l-1 3M12 12l3 1M10 19l2-1M17 17l1 3"/></svg>Sprinkles</button>
           <button class="pill" data-p="cherry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="16" r="4.5"/><path d="M12 11.5c.5-3 2.5-6 6-7.5"/></svg>Cherry</button>
         </div>
+      </div>
+
+      <div class="cell" id="shareCell">
+        <button class="send" id="bOpenShare">Share your creation</button>
       </div>
 
       <div class="cell">
@@ -247,6 +298,18 @@
       </div>
     </aside>
   </section>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card">
+    <video id="sheetVideo" playsinline muted loop autoplay></video>
+    <div class="sheet-actions">
+      <button class="pill on" id="bShare">Send it</button>
+      <a class="pill" id="bDownload" download="broken-glass.webm">Download</a>
+      <button class="pill" id="bServeAgain">Serve again</button>
+      <button class="pill" id="bSheetClose">Back to the kitchen</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -954,6 +1017,7 @@ function applyGrab() {
 function step() {
   simTime += DT;
   updateAnim(DT);
+  updateServe(DT);
   updateDecorate(DT);
   const f = ui.firm, alpha = 0.1 + 0.6 * f * f, alphaCrust = Math.min(0.9, alpha * 2.2 + 0.2), ag = 0.012 + 0.05 * f;
   for (const pc of pieces) {
@@ -967,8 +1031,10 @@ function step() {
   for (let it = 0; it < ITER; it++) {
     for (const pc of pieces) { solveTets(pc, alpha, alphaCrust); solveGlobal(pc, ag); }
     applyGrab();
+    applyCarry();
     applyColliders();
     collidePieces();
+    if (dishActive()) collideDish();
     for (const pc of pieces) floorContact(pc);
   }
   const dK = 0.02 + 0.16 * ui.damp;
@@ -1398,6 +1464,235 @@ function cutterMesh(k) {
   return { V: new Float32Array(V), I: new Uint32Array(I) };
 }
 
+// ─── Serving dishes ───────────────────────────────────────────────────
+// Each dish is a thin shell: 2D profiles (radius, height) spun around its centre. Pieces, cherries and
+// sprinkles collide with that shell, so you can carry pieces over with the Hand and set them down.
+const DISH_C = [3.35, 0, 0.2];
+const DISHES = {
+  stand: { name: 'Platter', color: '#F3D3CE', th: 0.035, rim: 0,
+    profiles: [[[0, 0.64], [1.45, 0.64], [1.57, 0.69], [1.62, 0.74]], [[0.17, 0.62], [0.12, 0.42], [0.14, 0.14], [0.56, 0.035], [0.6, 0.012]]] },
+  cup: { name: 'Cup', color: '#F2E3AE', th: 0.035, rim: 0,
+    profiles: [[[0, 0.42], [0.55, 0.45], [1.05, 0.66], [1.38, 1.02], [1.46, 1.25]], [[0.09, 0.41], [0.08, 0.12], [0.62, 0.03], [0.66, 0.012]]] },
+  plate: { name: 'Plate', color: '#CBE6D8', th: 0.03, rim: 14,
+    profiles: [[[0, 0.06], [1.3, 0.06], [1.5, 0.12], [1.66, 0.2]], [[0.85, 0.012], [0.9, 0.05]]] },
+};
+let dish = 'stand';
+function segDist(px, py, ax, ay, bx, by) {
+  const ex = bx - ax, ey = by - ay, t = clamp(((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey), 0, 1);
+  return Math.hypot(px - ax - ex * t, py - ay - ey * t);
+}
+function dishSDF2(r, y) { // distance to the dish shell in the (radius, height) plane
+  const D = DISHES[dish];
+  let d = Infinity;
+  for (const pr of D.profiles) for (let i = 0; i < pr.length - 1; i++) d = Math.min(d, segDist(r, y, pr[i][0], pr[i][1], pr[i + 1][0], pr[i + 1][1]));
+  return d - D.th;
+}
+function dishSDF(p) { return dishSDF2(Math.hypot(p[0] - DISH_C[0], p[2] - DISH_C[2]), p[1]); }
+function dishNormal(p) {
+  const dx = p[0] - DISH_C[0], dz = p[2] - DISH_C[2], r = Math.hypot(dx, dz) || 1e-6, e = 0.004;
+  const gr = (dishSDF2(r + e, p[1]) - dishSDF2(Math.max(0, r - e), p[1])) / (2 * e), gy = (dishSDF2(r, p[1] + e) - dishSDF2(r, p[1] - e)) / (2 * e);
+  return norm([gr * dx / r, gy, gr * dz / r]);
+}
+const dishReach = () => Math.max(...DISHES[dish].profiles.flat().map(q => q[0])) + 0.1;
+const dishTop = () => Math.max(...DISHES[dish].profiles.flat().map(q => q[1])) + 0.1;
+function collideDish() {
+  const R = dishReach(), H = dishTop(), M = CONTACT;
+  for (const pc of pieces) {
+    const x = pc.sim.x, xp = pc.sim.xp;
+    for (let i = 0; i < x.length; i += 3) {
+      const dx = x[i] - DISH_C[0], dz = x[i + 2] - DISH_C[2];
+      if (dx * dx + dz * dz > R * R || x[i + 1] > H) continue;
+      const p = [x[i], x[i + 1], x[i + 2]], d = dishSDF(p);
+      if (d >= M) continue;
+      // which side of the shell are we on? use last step's position so fast pieces don't tunnel
+      const n = dishNormal([xp[i], xp[i + 1], xp[i + 2]]), push = M - d;
+      x[i] += n[0] * push; x[i + 1] += n[1] * push; x[i + 2] += n[2] * push;
+      const tx = x[i] - xp[i], ty = x[i + 1] - xp[i + 1], tz = x[i + 2] - xp[i + 2], tn = tx * n[0] + ty * n[1] + tz * n[2];
+      x[i] -= (tx - tn * n[0]) * 0.6; x[i + 1] -= (ty - tn * n[1]) * 0.6; x[i + 2] -= (tz - tn * n[2]) * 0.6;
+    }
+  }
+}
+function dishMesh(key) { // the shell outline swept around the centre; the plate gets a scalloped rim
+  const D = DISHES[key], V = [], I = [], col = hexLin(D.color);
+  for (const pr of D.profiles) {
+    const loop = [];
+    const side = sgn => pr.map((q, i) => {
+      const a = pr[Math.max(0, i - 1)], b = pr[Math.min(pr.length - 1, i + 1)], t = norm([b[0] - a[0], b[1] - a[1], 0]);
+      return [q[0] - t[1] * D.th * sgn, q[1] + t[0] * D.th * sgn];
+    });
+    const up = side(1), dn = side(-1).reverse();
+    loop.push(...up, ...dn, up[0]);
+    const rings = loop.map(q => ({ y: q[1], r: Math.max(0.001, q[0]) }));
+    const rmax = Math.max(...pr.map(q => q[0]));
+    lathe(V, I, rings, 72, col, 10, D.rim ? (i, a) => 1 + (rings[i].r > rmax * 0.9 ? 0.018 * Math.cos(D.rim * a) : 0) : null);
+  }
+  return finish(V, I);
+}
+
+// ─── Record & send ────────────────────────────────────────────────────
+// Films a short portrait card: the title, your creation wobbling on its dish, and your note.
+const REC = { w: 720, h: 960 };
+let recording = null, share = null;
+const dishActive = () => !!share && share.phase !== 'pick';
+
+// Share: pick pieces → choose a dish → Serve & record. Serving lifts each picked piece, arcs it over the
+// dish and drops it in; the recording captures the drop and the jiggle as they land.
+function enterShare() {
+  if (anim || recording) return;
+  if (grab) endGrab();
+  share = { phase: 'pick', picked: new Set(pieces.length === 1 ? pieces : []) };
+  hover = null; deco.hover = null;
+  document.body.classList.add('sharing'); stage.dataset.tool = 'share';
+  $('#hint').textContent = 'Click the pieces you want to serve.';
+  updatePicked();
+}
+function exitShare() {
+  if (recording) return;
+  restoreServed();
+  share = null;
+  document.body.classList.remove('sharing');
+  $('#sheet').hidden = true;
+  setTool(ui.tool);
+}
+function updatePicked() {
+  if (!share) return;
+  for (const pc of [...share.picked]) if (!pieces.includes(pc)) share.picked.delete(pc);
+  const n = share.picked.size;
+  $('#pickCount').textContent = n ? `${n} piece${n > 1 ? 's' : ''} picked` : 'none picked';
+  $('#bServe').disabled = !n;
+}
+function togglePick(m) {
+  const { o, d } = screenRay(m.x, m.y), hit = pick(o, d);
+  if (!hit) return;
+  share.picked.has(hit.piece) ? share.picked.delete(hit.piece) : share.picked.add(hit.piece);
+  updatePicked();
+}
+function serve() {
+  if (!share || share.phase !== 'pick' || !share.picked.size) return;
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast('This browser can’t record video.'); return; }
+  const served = pieces.filter(pc => share.picked.has(pc)).sort((a, b) => b.area - a.area); // biggest first, smaller ones land on top
+  // snapshot so "Serve again" and "Back to the kitchen" can put everything back
+  share.snap = served.map(pc => ({ pc, x: new Float32Array(pc.sim.x), q: new Float64Array(pc.q) }));
+  // plate them side by side where they fit; only stack when the dish is full
+  const top = dishTop() - 0.1, dishR = dishReach() - 0.2, placed = [];
+  const footprint = pc => { let r = 0; const x = pc.sim.x; for (let i = 0; i < x.length; i += 3) r = Math.max(r, Math.hypot(x[i] - pc.c[0], x[i + 2] - pc.c[2])); return r * 0.8; };
+  share.carry = served.map((pc, i) => {
+    const r = footprint(pc);
+    let spot = null;
+    for (let ring = 0; ring <= 8 && !spot; ring++) for (let k = 0; k < Math.max(1, ring * 6) && !spot; k++) {
+      const d = ring * 0.18, a = k / Math.max(1, ring * 6) * Math.PI * 2 + ring;
+      const q = [Math.cos(a) * d, Math.sin(a) * d];
+      if (Math.hypot(q[0], q[1]) + r * 0.6 > dishR && placed.length) continue;
+      if (placed.every(o => Math.hypot(q[0] - o.q[0], q[1] - o.q[1]) > (r + o.r) * 0.85)) spot = q;
+    }
+    let lift = 0;
+    if (!spot) { spot = [(i % 2 ? 0.12 : -0.12), 0]; lift = 0.55 * placed.filter(o => Math.hypot(o.q[0] - spot[0], o.q[1] - spot[1]) < r + o.r).length; }
+    placed.push({ q: spot, r });
+    if (lift && i === served.length - 1) toast(`That’s a lot of jello for one ${DISHES[dish].name.toLowerCase()}. Some might tumble!`);
+    return { pc, t0: 0.6 + i * 0.5, dur: 0.95, from: pc.c.slice(), to: [DISH_C[0] + spot[0], top + 0.45 + lift, DISH_C[2] + spot[1]] };
+  });
+  share.t = 0;
+  share.phase = 'serving';
+  const last = share.carry[share.carry.length - 1];
+  startRecording(served, Math.min(9, last.t0 + last.dur + 2.8));
+}
+function onDish() { // pieces resting on the dish
+  const R = dishReach() - 0.1;
+  return pieces.filter(p => Math.hypot(p.c[0] - DISH_C[0], p.c[2] - DISH_C[2]) < R && p.c[1] > 0.1);
+}
+function updateServe(dt) { if (share && share.phase !== 'pick') share.t += dt; }
+function applyCarry() { // gently steer each carried piece along its arc; once released it falls onto the dish
+  if (!share || !share.carry) return;
+  for (const c of share.carry) {
+    const u = (share.t - c.t0) / c.dur;
+    if (u < 0 || u > 1) continue;
+    const e = easeIO(u), peak = Math.max(c.from[1], c.to[1]) + 0.7;
+    const mid = [(c.from[0] + c.to[0]) / 2, peak, (c.from[2] + c.to[2]) / 2];
+    const P = [0, 1, 2].map(k => (1 - e) * (1 - e) * c.from[k] + 2 * (1 - e) * e * mid[k] + e * e * c.to[k]);
+    const pc = c.pc, x = pc.sim.x, ro = pc.restOff, R = pc.R;
+    // level orientation: keep the piece's heading, drop any tilt (a rest-space piece lies flat when R has no tilt)
+    const hx = R[0], hz = R[2], hl = Math.hypot(hx, hz) || 1, cs = hx / hl, sn = hz / hl;
+    const w = 0.35;
+    for (let i = 0; i < x.length; i += 3) {
+      const rx = ro[i], ry = ro[i + 1], rz = ro[i + 2];
+      const gx = P[0] + cs * rx - sn * rz, gy = P[1] + ry, gz = P[2] + sn * rx + cs * rz;
+      x[i] += (gx - x[i]) * w; x[i + 1] += (gy - x[i + 1]) * w; x[i + 2] += (gz - x[i + 2]) * w;
+    }
+  }
+}
+function restoreServed() {
+  if (!share || !share.snap) return;
+  for (const { pc, x, q } of share.snap) {
+    if (!pieces.includes(pc)) continue;
+    pc.sim.x.set(x); pc.sim.xp.set(x); pc.sim.v.fill(0); pc.q.set(q); solveGlobal(pc, 0);
+  }
+  share.snap = null; share.carry = null;
+}
+function startRecording(served, dur) {
+  const cc = document.createElement('canvas'); cc.width = REC.w; cc.height = REC.h;
+  const type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+  const rec = new MediaRecorder(cc.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 5e6 } : {});
+  const chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  rec.onstop = () => finishRecording(new Blob(chunks, { type: rec.mimeType || 'video/webm' }));
+  recording = { t: 0, dur, start: performance.now(), cc, ctx: cc.getContext('2d'), rec, note: $('#note').value.trim(), cam0: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t.slice() }, served, tapped: false, paused: ui.paused };
+  setPaused(false);
+  document.body.classList.add('recording'); $('#bServe').disabled = true;
+  rec.start();
+  setTimeout(() => { if (recording && recording.rec.state === 'recording') recording.rec.stop(); }, dur * 1000 + 250); // backup if frames stall (e.g. tab hidden)
+}
+function updateRecording(dt) {
+  const r = recording;
+  if (!r) return;
+  r.t = (performance.now() - r.start) / 1000;
+  const k = easeIO(clamp(r.t / r.dur, 0, 1)), top = dishTop(), ease = Math.min(1, r.t * 1.8);
+  cam.t[0] = lerp(r.cam0.t[0], DISH_C[0], ease); cam.t[1] = lerp(r.cam0.t[1], top * 0.8, ease); cam.t[2] = lerp(r.cam0.t[2], DISH_C[2], ease);
+  cam.dist = lerp(r.cam0.dist, dish === 'cup' ? 5.6 : 6.4, ease); cam.pitch = lerp(r.cam0.pitch, 0.5, ease);
+  cam.yaw = r.cam0.yaw - 0.3 + 0.6 * k;
+  if (!r.tapped && r.t > r.dur - 1.5) { // one last tap so everything jiggles together
+    r.tapped = true;
+    for (const pc of r.served) { const v = pc.sim.v; for (let i = 1; i < v.length; i += 3) v[i] += 0.7; }
+  }
+  if (r.t >= r.dur && r.rec.state === 'recording') r.rec.stop();
+}
+function wrapText(ctx, text, maxW) {
+  const words = text.split(/\s+/), lines = [];
+  let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line);
+  return lines.slice(0, 3);
+}
+function drawCard() { // composite the live canvas into the portrait card being recorded
+  const r = recording;
+  if (!r || r.rec.state !== 'recording') return;
+  const c = r.ctx, W2 = REC.w, H2 = REC.h;
+  c.fillStyle = '#EEEAE0'; c.fillRect(0, 0, W2, H2);
+  c.fillStyle = '#1E1B18'; c.textAlign = 'center';
+  c.font = '400 92px "Instrument Serif", Georgia, serif'; c.fillText('Broken Glass.', W2 / 2, 118);
+  const size = 620, x0 = (W2 - size) / 2, y0 = 160, s = Math.min(W, H);
+  c.drawImage(canvas, (W - s) / 2, (H - s) / 2, s, s, x0, y0, size, size);
+  c.strokeStyle = '#1E1B18'; c.lineWidth = 1; c.strokeRect(x0 + 0.5, y0 + 0.5, size - 1, size - 1);
+  c.font = 'italic 400 36px "Instrument Serif", Georgia, serif';
+  const lines = wrapText(c, r.note || 'Made you a little something.', W2 - 120);
+  lines.forEach((l, i) => c.fillText(l, W2 / 2, y0 + size + 62 + i * 42));
+  c.font = '500 14px "SF Mono", Menlo, monospace'; c.fillStyle = '#6B655C';
+  c.fillText('MATERIAL STUDIES · NO. 012 · SERVED ON A ' + DISHES[dish].name.toUpperCase(), W2 / 2, H2 - 32);
+}
+function finishRecording(blob) {
+  const r = recording; recording = null;
+  setPaused(r.paused);
+  document.body.classList.remove('recording');
+  if (share) share.phase = 'done';
+  const ext = blob.type.includes('mp4') ? 'mp4' : 'webm', url = URL.createObjectURL(blob);
+  const v = $('#sheetVideo'); v.src = url; v.play().catch(() => {});
+  const a = $('#bDownload'); a.href = url; a.download = 'broken-glass.' + ext;
+  const file = new File([blob], 'broken-glass.' + ext, { type: blob.type });
+  const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+  $('#bShare').hidden = !canShare;
+  $('#bShare').onclick = () => navigator.share({ files: [file], title: 'Broken Glass', text: r.note || 'Made you a little something.' }).catch(() => {});
+  $('#sheet').hidden = false;
+}
+
 // ─── Decorate: toppings ───────────────────────────────────────────────
 // A topping sits at a resting-space point on a piece's surface, embedded in that piece's soft body
 // like the surface itself, so it rides the wobble and follows the piece through cuts. Toppings that
@@ -1488,7 +1783,9 @@ function streamMesh() { // a thin unit column along -y, scaled to the spray leng
 
 // ── contact with the cake (each piece's resting shape placed by its rigid frame) or the table
 function landTest(p, r) {
-  if (p[1] <= r) return { floor: true };
+  if (p[1] <= r) return { floor: true, p: [p[0], 0, p[2]], n: [0, 1, 0] };
+  const dd = dishActive() ? dishSDF(p) : Infinity;
+  if (dd < r) { const n = dishNormal(p); return { floor: true, dish: true, p: sub(p, scale(n, dd)), n }; }
   for (const pc of pieces) {
     const X = worldToRest(pc, p);
     if (X[1] > TOP + r || X[1] < -r) continue;
@@ -1516,7 +1813,7 @@ function canAdd(type) {
 }
 function attach(type, contact, extra) { // contact: { piece, X, n } on the cake, or { floor, p }
   const t = { type, ang: rnd() * Math.PI * 2, born: simTime, s: 1, parent: null, ...extra };
-  if (contact.floor) { t.piece = null; t.wp = [contact.p[0], 0, contact.p[2]]; t.n = [0, 1, 0]; }
+  if (contact.floor) { t.piece = null; t.wp = contact.p.slice(); t.n = contact.n || [0, 1, 0]; }
   else { t.piece = contact.piece; t.X = contact.X; t.n = contact.n; t.emb = findTet(contact.piece.sim, contact.X[0], contact.X[1], contact.X[2]); }
   toppings.push(t);
   updateReadouts();
@@ -1607,7 +1904,7 @@ function updateFalling(dt) {
       f.ang += f.spin * dt;
       const c = landTest(f.p, 0.009 * SPRINKLE_K);
       if (!c) { if (f.p[1] > -1) keep.push(f); continue; }
-      attach('sprinkles', c.floor ? { floor: true, p: f.p } : c, { col: f.col, s: 0.85 + rnd() * 0.3, noGrow: true });
+      attach('sprinkles', c, { col: f.col, s: 0.85 + rnd() * 0.3, noGrow: true });
       continue;
     }
     // cherry
@@ -1615,7 +1912,7 @@ function updateFalling(dt) {
     if (!f.axis) { const d = creamUnder(f.p); if (d) { attach('cherry', { floor: true, p: [0, 0, 0] }, { parent: d }); toppings[toppings.length - 1].piece = d.piece; continue; } }
     const c = landTest(f.p, R);
     if (c) {
-      const n = c.floor ? [0, 1, 0] : norm(mulR(c.piece.R, c.n));
+      const n = c.floor ? (c.n || [0, 1, 0]) : norm(mulR(c.piece.R, c.n));
       // sit on the surface, bounce a little, keep some roll
       const vn = dot(f.v, n);
       if (vn < 0) f.v = sub(f.v, scale(n, vn * (f.landed ? 1 : 1.35)));
@@ -1625,7 +1922,7 @@ function updateFalling(dt) {
         const side = norm(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [Math.cos(rnd() * 6.3), 0, Math.sin(rnd() * 6.3)]));
         f.axis = side;
       }
-      if (c.floor) f.p[1] = Math.max(f.p[1], R);
+      if (c.floor) f.p = c.dish ? add(c.p, scale(n, R)) : [f.p[0], Math.max(f.p[1], R), f.p[2]];
       else { const surf = restToWorld(c.piece, c.X); f.p = add(surf, scale(n, R)); }
       f.contact = c;
     }
@@ -1635,7 +1932,7 @@ function updateFalling(dt) {
     if (f.landed && f.tilt >= 1.3 && f.still > 0.12 && f.contact) {
       // settle: store the toppled orientation in the piece's resting frame so it rides the wobble
       const B = cherryBasis(f), c2 = f.contact;
-      if (c2.floor) attach('cherry', { floor: true, p: f.p }, { ori: B, lie: true });
+      if (c2.floor) attach('cherry', { floor: true, p: sub(f.p, scale(c2.n || [0, 1, 0], R)), n: c2.n }, { ori: B, lie: true });
       else attach('cherry', c2, { ori: B.map(v => mulRT(c2.piece.R, v)), lie: true });
       continue;
     }
@@ -1674,7 +1971,8 @@ function moveToppings(old, news) {
 // ── drawing: every topping, falling bit and hand-held tool is an instance of a small mesh
 function drawToppings(pass) {
   if (!decoGeo) return;
-  const groups = { cream: [], cherry: [], sprinkles: [], can: [], shaker: [], stream: [] };
+  const groups = { cream: [], cherry: [], sprinkles: [], can: [], shaker: [], stream: [], [dish]: [] };
+  if (dishActive()) groups[dish].push([[1, 0, 0], [0, 1, 0], [0, 0, 1], 1, 1, 1, DISH_C, null]);
   const inst = (key, bx, by, bz, sx, sy, sz, P, col) => groups[key].push([bx, by, bz, sx, sy, sz, P, col]);
   for (const t of toppings) {
     if (t.piece && !pieces.includes(t.piece)) continue;
@@ -1937,6 +2235,7 @@ fn segment(S: ptr<function, vec3f>, T: ptr<function, vec3f>, len: f32, ext: vec3
     col = S + T * bg;
     col = mix(col, env(reflect(-V, N)), fres) + spec;
   }
+  col += vec3f(1.0, 0.3, 0.18) * fr.C.w * (0.12 + 0.5 * pow(1.0 - cv, 2.0));  // picked for serving
   return vec4f(toSrgb(neutral(col)) + dither(in.clip.xy), 1.0);
 }
 
@@ -2006,6 +2305,8 @@ struct DOut { @builtin(position) clip: vec4f, @location(0) wp: vec3f, @location(
     col = in.col * (0.42 + 0.62 * nl) + in.col * pow(1.0 - cv, 2.0) * 0.45 + vec3f(ggx(N, V, L, 0.07) * 5.0 + ggx(N, V, normalize(RIM), 0.12) * 1.6) + env(reflect(-V, N)) * fres * 0.7;
   } else if (in.mat == 2u) { // stem
     col = in.col * (0.4 + 0.6 * nl);
+  } else if (in.mat == 10u) { // milk-glass dish: soft body, crisp gloss, light glowing through the thin rim
+    col = in.col * (0.5 + 0.45 * nl) + in.col * pow(1.0 - cv, 2.5) * 0.35 + vec3f(ggx(N, V, L, 0.1) * 2.4 + ggx(N, V, normalize(RIM), 0.16) * 0.8) + env(reflect(-V, N)) * fres * 0.7;
   } else if (in.mat == 4u) { // can paint: satin
     col = in.col * (0.45 + 0.6 * nl) + vec3f(ggx(N, V, L, 0.32) * 0.9) + env(reflect(-V, N)) * fres * 0.4;
   } else if (in.mat == 5u) { // polished metal / glossy nozzle
@@ -2146,7 +2447,7 @@ async function initGPU() {
   if (err) throw new GpuError('WebGPU setup failed: ' + err.message);
 
   knifeGeo = uploadGeo(knifeMesh());
-  decoGeo = { cream: uploadGeo(creamMesh()), cherry: uploadGeo(cherryMesh()), sprinkles: uploadGeo(sprinkleMesh()), can: uploadGeo(canMesh()), shaker: uploadGeo(shakerMesh()), stream: uploadGeo(streamMesh()) };
+  decoGeo = { stand: uploadGeo(dishMesh('stand')), cup: uploadGeo(dishMesh('cup')), plate: uploadGeo(dishMesh('plate')), cream: uploadGeo(creamMesh()), cherry: uploadGeo(cherryMesh()), sprinkles: uploadGeo(sprinkleMesh()), can: uploadGeo(canMesh()), shaker: uploadGeo(shakerMesh()), stream: uploadGeo(streamMesh()) };
   instBuf = device.createBuffer({ size: instData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
   cutterGeo = cutterShapes.map((_, k) => uploadGeo(cutterMesh(k)));
   vBuf = null; geomDirty = true;
@@ -2251,7 +2552,7 @@ function camEye() {
   return [cam.t[0] + cam.dist * cp * Math.sin(cam.yaw), cam.t[1] + cam.dist * Math.sin(cam.pitch), cam.t[2] + cam.dist * cp * Math.cos(cam.yaw)];
 }
 function updateCamera(dt) {
-  if (pieces.length && !grab) { // ease after the cake if it's been thrown
+  if (pieces.length && !grab && !recording && !(share && share.phase === 'done')) { // ease after the cake if it's been thrown
     let cx = 0, cz = 0; for (const p of pieces) { cx += p.c[0]; cz += p.c[2]; }
     cx = clamp(cx / pieces.length, -2, 2); cz = clamp(cz / pieces.length, -2, 2);
     const k = 1 - Math.exp(-dt * 1.5);
@@ -2305,7 +2606,8 @@ function writeUniforms() {
   gData.set([...hexLin(f.crust), 1], 80);
   const cl = f.cubes.map(hexLin), avg = [0, 1, 2].map(k => (cl[0][k] + cl[1][k] + cl[2][k] + cl[3][k]) / 4);
   gData.set([...avg.map(a => lerp(0.55, a, 0.55)), 1], 84);
-  gData.set([cubes.length, pieces.length, simTime, 0], 88);
+  gData.set([cubes.length, pieces.length + (dishActive() ? 1 : 0), simTime, 0], 88);
+  if (dishActive()) { const R = dishReach(), i2 = 1 / (R * R * 0.18); gData.set([DISH_C[0], DISH_C[2], 0.1, 0, i2, 0, i2, 0.05], 108 + 8 * pieces.length); }
   for (let k = 0; k < 4; k++) gData.set([...cl[k], 1], 92 + 4 * k);
   pieces.forEach((pc, i) => {
     const x = pc.sim.x, n = pc.sim.n;
@@ -2322,7 +2624,7 @@ function writeUniforms() {
   device.queue.writeBuffer(gBuf, 0, gData);
   for (const pc of pieces) {
     const o = pc.slot * 20, R = pc.R;
-    fData.set([R[0], R[1], R[2], 0, R[3], R[4], R[5], 0, R[6], R[7], R[8], 0, pc.c[0], pc.c[1], pc.c[2], 0, pc.C[0], pc.C[1], pc.C[2], 0], o);
+    fData.set([R[0], R[1], R[2], 0, R[3], R[4], R[5], 0, R[6], R[7], R[8], 0, pc.c[0], pc.c[1], pc.c[2], 0, pc.C[0], pc.C[1], pc.C[2], share && share.phase === 'pick' && share.picked.has(pc) ? 1 : 0], o);
   }
   device.queue.writeBuffer(fBuf, 0, fData);
 }
@@ -2377,6 +2679,7 @@ let drag = null, stroke = [], lastPointer = { x: 0, y: 0 };
 const localPt = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
 
 function updateHover(m) {
+  if (share) { hover = null; deco.hover = null; return; }
   if (anim) return;
   if (ui.tool === 'decorate') {
     const { o, d } = screenRay(m.x, m.y), hit = pick(o, d), p = hit ? hit.p : rayPlaneY(o, d, 0);
@@ -2406,7 +2709,8 @@ canvas.addEventListener('pointerdown', e => {
   canvas.setPointerCapture(e.pointerId);
   const m = localPt(e);
   drag = { x0: m.x, y0: m.y, x: m.x, y: m.y, mode: null, moved: false };
-  if (e.button === 2 || e.shiftKey || anim) { drag.mode = 'orbit'; return; }
+  if (e.button === 2 || e.shiftKey || anim || (share && share.phase !== 'pick')) { drag.mode = 'orbit'; return; }
+  if (share) { drag.mode = 'click'; return; }
   if (ui.tool === 'hand') {
     const { o, d } = screenRay(m.x, m.y), h = pick(o, d);
     drag.mode = h && startGrab(h, d) ? 'grab' : 'orbit';
@@ -2453,7 +2757,7 @@ canvas.addEventListener('pointerup', e => {
   const m = localPt(e), d = drag; drag = null;
   deco.holding = false;
   if (d.mode === 'grab') endGrab();
-  else if (d.mode === 'click' && !d.moved) { if (ui.tool === 'decorate') { updateHover(m); dropCherry(); } else doStamp(m); }
+  else if (d.mode === 'click' && !d.moved) { if (share) togglePick(m); else if (ui.tool === 'decorate') { updateHover(m); dropCherry(); } else doStamp(m); }
   else if (d.mode === 'stroke') { finishStroke(); strokeLine.setAttribute('points', ''); }
   updateHover(m);
 });
@@ -2541,6 +2845,19 @@ function setTopping(k) {
   if (ui.tool === 'decorate') $('#hint').textContent = DECO_HINTS[k];
 }
 $('#topPills').addEventListener('click', e => { const b = e.target.closest('.pill'); if (b) { setTopping(b.dataset.p); if (ui.tool !== 'decorate') setTool('decorate'); } });
+function setDish(k) {
+  dish = k;
+  document.querySelectorAll('#dishCards .card').forEach(b => b.classList.toggle('on', b.dataset.d === k));
+}
+$('#dishCards').addEventListener('click', e => { const b = e.target.closest('.card'); if (b) setDish(b.dataset.d); });
+$('#bOpenShare').addEventListener('click', enterShare);
+$('#bBackKitchen').addEventListener('click', exitShare);
+$('#bPickAll').addEventListener('click', () => { share.picked = new Set(pieces); updatePicked(); });
+$('#bPickNone').addEventListener('click', () => { share.picked.clear(); updatePicked(); });
+$('#bServe').addEventListener('click', serve);
+$('#bSheetClose').addEventListener('click', () => { $('#sheetVideo').pause(); exitShare(); });
+$('#bServeAgain').addEventListener('click', () => { $('#sheetVideo').pause(); $('#sheet').hidden = true; restoreServed(); share.phase = 'pick'; updatePicked(); });
+$('#note').addEventListener('keydown', e => e.stopPropagation());
 $('#bClearTop').addEventListener('click', () => { toppings = []; falling = []; deco.current = null; updateReadouts(); });
 function setShape(s) {
   ui.shape = s;
@@ -2598,6 +2915,7 @@ addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range') return;
   const ws = document.body.classList.contains('ws');
   if (['ArrowDown', 'PageDown', 'Enter'].includes(e.key) && !ws) { e.preventDefault(); go(true); return; }
+  if (share && ws) { if (e.key === 'Escape') { e.preventDefault(); exitShare(); } return; }
   if (['ArrowUp', 'PageUp', 'Escape'].includes(e.key) && ws) { e.preventDefault(); go(false); return; }
   if (!ws || !gpuReady) return;
   const k = e.key.toLowerCase();
@@ -2631,8 +2949,10 @@ function loop(now) {
       while (acc >= DT && n++ < 4) { step(); acc -= DT; }
       if (acc > DT) acc = 0;
     }
+    if (recording) updateRecording(dtReal);
     updateCamera(dtReal);
     render();
+    drawCard();
   }
   requestAnimationFrame(loop);
 }
@@ -2647,6 +2967,7 @@ window.jello = {
   stats: () => ({ pieces: pieces.length, cubesExposed: cubesExposed(), anim: anim && anim.kind }),
   showScreen, setTool, setFlavour, setTopping, nudge, reset: resetCake,
   decorate: (x, z, type = ui.topping) => { const h = pick([x, 5, z], [0, -1, 0]); return h ? addTopping(h, type) : null; },
+  setDish, enterShare, exitShare, serve, pickAll: () => { share.picked = new Set(pieces); updatePicked(); }, get recording() { return !!recording; }, get sharePhase() { return share && share.phase; }, onDish: () => onDish().length,
   get toppings() { return toppings.length; }, get falling() { return falling.length; }, toppingList: () => toppings,
   hoverAt: (x, z) => { const h = pick([x, 5, z], [0, -1, 0]); deco.hover = { p: h ? h.p : [x, 0, z], hit: h }; }, dropCherry,
   hold: on => { deco.holding = on; }, shake: amount => { deco.shake += amount; },
