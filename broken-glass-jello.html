@@ -1035,6 +1035,7 @@ function step() {
     applyColliders();
     collidePieces();
     if (dishActive()) collideDish();
+    collideToppings();
     for (const pc of pieces) floorContact(pc);
   }
   const dK = 0.02 + 0.16 * ui.damp;
@@ -1495,6 +1496,28 @@ function dishNormal(p) {
 }
 const dishReach = () => Math.max(...DISHES[dish].profiles.flat().map(q => q[0])) + 0.1;
 const dishTop = () => Math.max(...DISHES[dish].profiles.flat().map(q => q[1])) + 0.1;
+// Cherries and cream dollops are solid too: if one would poke into the dish or the table,
+// push its piece away (through the tet it's embedded in) instead of letting it pass through.
+function collideToppings() {
+  const active = dishActive();
+  for (const t of toppings) {
+    if (t.type === 'sprinkles') continue;
+    const host = t.parent || t;
+    if (!host.piece || !pieces.includes(host.piece)) continue;
+    const q = toppingPose(t);
+    let c, r;
+    if (t.type === 'cherry') { c = t.parent ? add(q.p, scale(q.by, CHERRY_R)) : add(q.p, scale(q.n, CHERRY_R)); r = CHERRY_R; }
+    else { r = 0.1 * CREAM_R * t.s; c = add(q.p, scale(q.by, CREAM_H * t.s * 0.4)); }
+    let d = c[1] - r, n = [0, 1, 0];
+    if (active) { const dd = dishSDF(c) - r; if (dd < d) { d = dd; n = dishNormal(c); } }
+    if (d >= 0) continue;
+    const pc = host.piece, x = pc.sim.x, e = host.emb, push = Math.min(0.03, -d) * 0.5;
+    for (let k = 0; k < 4; k++) {
+      const j = pc.sim.tets[4 * e.t + k] * 3, w = e.w[k] * 1.6;
+      x[j] += n[0] * push * w; x[j + 1] += n[1] * push * w; x[j + 2] += n[2] * push * w;
+    }
+  }
+}
 function collideDish() {
   const R = dishReach(), H = dishTop(), M = CONTACT;
   for (const pc of pieces) {
