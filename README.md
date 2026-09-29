@@ -6,7 +6,9 @@ A single self-contained HTML file. The soft-body physics runs in JavaScript; ren
 
 ## Run it
 
-Open `broken-glass-jello.html` in a browser with WebGPU (recent Chrome or Edge, or Safari 26+). No build step and no dependencies; the only external request is the Instrument Serif font from Google Fonts, with a system-font fallback.
+**Play it:** https://niftyclaudia.github.io/broken-glass/
+
+Or open `index.html` locally in a browser with WebGPU (recent Chrome or Edge, or Safari 26+). No build step and no dependencies; the only external request is the Instrument Serif font from Google Fonts, with a system-font fallback.
 
 If a browser blocks it from `file://`, serve the folder locally:
 
@@ -14,7 +16,7 @@ If a browser blocks it from `file://`, serve the folder locally:
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000/broken-glass-jello.html>.
+Then open <http://localhost:8000/>.
 
 ## Controls
 
