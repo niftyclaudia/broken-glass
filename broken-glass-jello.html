@@ -53,7 +53,7 @@
   .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
   .stage[data-tool="hand"] canvas{cursor:grab}
   .stage[data-tool="hand"].grabbing canvas{cursor:grabbing}
-  .stage[data-tool="cutter"] canvas{cursor:pointer}
+  .stage[data-tool="cutter"] canvas,.stage[data-tool="decorate"] canvas{cursor:pointer}
   #strokeSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .back{position:absolute;top:18px;left:22px;font-family:var(--serif);font-style:italic;font-size:20px;z-index:2}
   .badge{position:absolute;top:18px;right:22px;background:var(--pill);color:#fff;font-family:var(--grot);
@@ -71,7 +71,7 @@
 
   .panel{border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}
   .tabs{display:flex;gap:8px;padding:22px 22px 0;border-bottom:1px solid var(--line);flex-shrink:0}
-  .tab{flex:1;text-align:left;padding:9px 14px 7px;font-size:17px;border:1px solid var(--line);border-bottom:0;
+  .tab{flex:1;text-align:left;padding:9px 11px 7px;font-size:16px;border:1px solid var(--line);border-bottom:0;
        border-radius:12px 12px 0 0;margin-bottom:-1px;background:var(--paper)}
   .tab.on{background:var(--tab);border-color:var(--tab);color:#fff}
   .tab kbd{font-family:var(--mono);font-size:10px;opacity:.6;margin-left:6px}
@@ -88,8 +88,8 @@
   .tag{border-color:#8f887d;color:#4a453f;padding:3px 10px;font-size:11px;cursor:pointer;min-height:26px}
   .tag input{display:none}
   .tag:has(input:checked){background:var(--ink);border-color:var(--ink);color:var(--paper)}
-  #shapes{transition:opacity .3s}
-  #shapes.dim{opacity:.35}
+  #shapes,#toppings{transition:opacity .3s}
+  #shapes.dim,#toppings.dim{opacity:.35}
   .flav{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
   .card{text-align:left}
   .card svg{border:1px solid var(--ink);border-radius:6px;width:100%;aspect-ratio:1;display:block;margin-bottom:8px}
@@ -177,6 +177,7 @@
         <button class="tab" data-t="hand">Hand<kbd>H</kbd></button>
         <button class="tab on" data-t="knife">Knife<kbd>K</kbd></button>
         <button class="tab" data-t="cutter">Cutter<kbd>C</kbd></button>
+        <button class="tab" data-t="decorate">Decorate<kbd>D</kbd></button>
       </nav>
 
       <div class="cell head">
@@ -191,6 +192,15 @@
           <button class="pill" data-s="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.2 4.2 0 0112 7.6 4.2 4.2 0 0119.5 10c0 5.4-7.5 10-7.5 10z"/></svg>Heart</button>
           <button class="pill" data-s="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 17c2-1 3-4 5-5s6-1 8-3 2-5 4-5 1 3-1 4-1 4-1 6v4h-2v-3h-4v3H9v-3l-3 1-3 1z"/></svg>Dino</button>
           <button class="pill" data-s="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13 2L5 13h6l-1 9 8-11h-6z"/></svg>Bolt</button>
+        </div>
+      </div>
+
+      <div class="cell dim" id="toppings">
+        <div class="label">Topping <span>1–3</span></div>
+        <div class="pills" id="topPills">
+          <button class="pill on" data-p="cream"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19h14M6 19c0-3 2.5-4.5 6-4.5s6 1.5 6 4.5M8.5 14.5c0-2 1.5-3.5 3.5-3.5s3.5 1.5 3.5 3.5M10.5 11c0-2 .5-4 3-6"/></svg>Whipped cream</button>
+          <button class="pill" data-p="sprinkles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7l3 1M14 5l1 3M18 11l2-2M7 14l-1 3M12 12l3 1M10 19l2-1M17 17l1 3"/></svg>Sprinkles</button>
+          <button class="pill" data-p="cherry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="16" r="4.5"/><path d="M12 11.5c.5-3 2.5-6 6-7.5"/></svg>Cherry</button>
         </div>
       </div>
 
@@ -209,12 +219,13 @@
         <table class="spec">
           <tr><td>Pieces</td><td id="rPieces">1</td></tr>
           <tr><td>Cubes exposed</td><td id="rCubes">0</td></tr>
+          <tr><td>Toppings</td><td id="rToppings">0</td></tr>
         </table>
       </div>
 
       <div class="cell">
         <div class="pills">
-          <button class="pill" id="bNudge">Give it a nudge</button><button class="pill" id="bReset">Reset</button><button class="pill" id="bPause">Pause</button>
+          <button class="pill" id="bNudge">Give it a nudge</button><button class="pill" id="bReset">Reset</button><button class="pill" id="bPause">Pause</button><button class="pill" id="bClearTop">Clear toppings</button>
           <label class="pill tag"><input type="checkbox" id="cQuarter">¼ speed</label>
           <label class="pill tag"><input type="checkbox" id="cMesh">Show mesh</label>
         </div>
@@ -279,6 +290,12 @@ const HINTS = {
   hand: 'Grab the cake and give it a wobble.',
   knife: 'Drag across the cake to slice it.',
   cutter: 'Click a flat piece to stamp a shape.',
+  decorate: '',
+};
+const DECO_HINTS = {
+  cream: 'Hold to spray whipped cream. Move while holding to pipe a line.',
+  sprinkles: 'Hold and shake to scatter sprinkles.',
+  cherry: 'Click to drop a cherry. Land it on the cream to keep it upright.',
 };
 const SHAPE_COLORS = ['#E9D38A', '#E7A9B4', '#A9C98F', '#B7A6D6'];
 
@@ -783,7 +800,7 @@ function makeCubes() {
 // ─── World state ──────────────────────────────────────────────────────
 let pieces = [];
 const slots = new Array(MAX_PIECES).fill(null);
-const ui = { tool: 'knife', shape: 0, flavour: 'classic', firm: 0.45, damp: 0.35, paused: false, quarter: false, mesh: false };
+const ui = { tool: 'knife', shape: 0, topping: 'cream', flavour: 'classic', firm: 0.45, damp: 0.35, paused: false, quarter: false, mesh: false };
 const cam = { yaw: 0.52, pitch: 0.62, dist: 8.6, t: [0, 0.3, 0], fov: 30 * Math.PI / 180 };
 let anim = null, grab = null, cutterParked = null, hover = null;
 let knife = { M: [0, 1.2, 0], u: [1, 0, 0], show: false };
@@ -803,6 +820,7 @@ function resetCake() {
   pieces = [p];
   assignSlots();
   anim = null; grab = null; cutterParked = null;
+  toppings = []; falling = []; deco.current = null;
   geomDirty = true;
   updateReadouts();
 }
@@ -936,6 +954,7 @@ function applyGrab() {
 function step() {
   simTime += DT;
   updateAnim(DT);
+  updateDecorate(DT);
   const f = ui.firm, alpha = 0.1 + 0.6 * f * f, alphaCrust = Math.min(0.9, alpha * 2.2 + 0.2), ag = 0.012 + 0.05 * f;
   for (const pc of pieces) {
     const s = pc.sim, x = s.x, xp = s.xp, v = s.v;
@@ -1088,6 +1107,7 @@ function doSwap(plan) {
     const i = pieces.indexOf(tg.old);
     if (i < 0) continue;
     for (const np of tg.news) applyTransfer(np, tg.old);
+    moveToppings(tg.old, tg.news);
     pieces.splice(i, 1, ...tg.news);
     if (grab && grab.piece === tg.old) endGrab();
   }
@@ -1378,6 +1398,336 @@ function cutterMesh(k) {
   return { V: new Float32Array(V), I: new Uint32Array(I) };
 }
 
+// ─── Decorate: toppings ───────────────────────────────────────────────
+// A topping sits at a resting-space point on a piece's surface, embedded in that piece's soft body
+// like the surface itself, so it rides the wobble and follows the piece through cuts. Toppings that
+// land on the table are stored in world space instead (piece = null).
+// Tools: a can of whipped cream you hold to spray, cherries you drop (they stick upright in cream and
+// topple over on bare jello), and a sprinkle shaker you shake so sprinkles fall wherever they land.
+const CREAM_H = 0.27, CHERRY_R = 0.1, MAX_BIG = 120, MAX_SPRINKLES = 2400, MAX_FALLING = 500;
+const SPRINKLE_COLORS = ['#FF4F8B', '#FFD23F', '#3BCEAC', '#5B8DEF', '#FF8C42', '#B28DFF', '#FFF6E8'].map(hexLin);
+const CAN_TIP = 0.3, SHAKER_UP = 0.62, CHERRY_DROP = 0.55, CREAM_R = 1.35, SPRINKLE_K = 1.5;
+let toppings = [], falling = [], decoGeo = null, instBuf = null;
+const deco = { hover: null, holding: false, shake: 0, tilt: 0, tiltTarget: 0, emit: 0, current: null, spraying: false };
+const instData = new Float32Array(20 * (MAX_BIG * 2 + MAX_SPRINKLES + MAX_FALLING + 8));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+// ── meshes (local frames: y up; see each for where the origin sits)
+function lathe(V, I, rings, seg, col, mat, radius) { // rings: [{y, r}]; radius(i, a) scales r by angle
+  const base = V.length / 10;
+  rings.forEach((ring, i) => { for (let k = 0; k < seg; k++) { const a = k / seg * Math.PI * 2, r = ring.r * (radius ? radius(i, a) : 1); V.push(Math.cos(a) * r, ring.y, Math.sin(a) * r, 0, 0, 0, ...col, mat); } });
+  for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < seg; k++) {
+    const a = base + i * seg + k, b = base + i * seg + (k + 1) % seg; I.push(a, b + seg, b, a, a + seg, b + seg);
+  }
+}
+const finish = (V, I) => { smoothNormals(V, I); return { V: new Float32Array(V), I: new Uint32Array(I) }; };
+function creamMesh() { // a piped rosette, origin at its base: eight ridges twisting up to a soft point
+  const V = [], I = [], N = 22, rings = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, r = CREAM_R * (i === 0 ? 0.001 : i === 1 ? 0.12 : 0.125 * Math.pow(1 - t, 0.9) * (1 + 0.25 * Math.sin(t * Math.PI) * (1 - t)) + 0.004);
+    rings.push({ y: i === 0 ? 0.004 : t * CREAM_H, r });
+  }
+  lathe(V, I, rings, 48, hexLin('#FBF7EE'), 0, (i, a) => 1 + 0.13 * Math.cos(8 * (a + i / N * 3.2)) * Math.min(1, i / 3));
+  return finish(V, I);
+}
+function cherryMesh() { // a maraschino cherry sitting on its origin: glossy candy-red fruit, long curved red stem
+  const V = [], I = [], R = CHERRY_R, rings = [], red = hexLin('#FF1F35'), stemRed = hexLin('#E0182C'), knob = hexLin('#9C0C1C');
+  for (let i = 0; i <= 18; i++) { // a touch wider than tall, with a soft dimple where the stem goes in
+    const th = i / 18 * Math.PI, y = (R - Math.cos(th) * R) * 0.92, dip = i >= 16 ? 0.012 * (i - 15) : 0;
+    rings.push({ y: y - dip, r: Math.max(0.001, Math.sin(th) * R * (1 + 0.05 * Math.sin(th * 2))) });
+  }
+  lathe(V, I, rings, 32, red, 1);
+  // stem: rises from the dimple, curving outward in one long arc, tapering to a knobbly tip
+  const base = V.length / 10, SEG = 8, pts = [], top = 2 * R * 0.92 - 0.03;
+  for (let i = 0; i <= 18; i++) { const t = i / 18; pts.push([0.16 * t * t + 0.02 * t, top + 0.26 * t - 0.05 * t * t * t, 0.03 * t * t]); }
+  pts.forEach((p, i) => { const r = 0.0085 - 0.003 * i / 18; for (let k = 0; k < SEG; k++) { const a = k / SEG * Math.PI * 2; V.push(p[0] + Math.cos(a) * r, p[1], p[2] + Math.sin(a) * r, 0, 0, 0, ...stemRed, 1); } });
+  for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k < SEG; k++) {
+    const a = base + i * SEG + k, b = base + i * SEG + (k + 1) % SEG; I.push(a, b + SEG, b, a, a + SEG, b + SEG);
+  }
+  const tip = pts[pts.length - 1], kb = V.length / 10, kr = 0.013, KR = 6;
+  for (let i = 0; i <= KR; i++) { const th = i / KR * Math.PI; for (let k = 0; k < SEG; k++) { const a = k / SEG * Math.PI * 2, r = Math.sin(th) * kr * (1 + 0.25 * Math.cos(3 * a + i)); V.push(tip[0] + 0.006 + Math.cos(a) * r, tip[1] - Math.cos(th) * kr * 0.8, tip[2] + Math.sin(a) * r, 0, 0, 0, ...knob, 1); } }
+  for (let i = 0; i < KR; i++) for (let k = 0; k < SEG; k++) {
+    const a = kb + i * SEG + k, b = kb + i * SEG + (k + 1) % SEG; I.push(a, b + SEG, b, a, a + SEG, b + SEG);
+  }
+  return finish(V, I);
+}
+function sprinkleMesh() { // a jimmy: a rounded rod lying along x, resting on its origin
+  const V = [], I = [], L = 0.056 * SPRINKLE_K, R = 0.009 * SPRINKLE_K, SEG = 10, NR = 9;
+  for (let i = 0; i <= NR; i++) {
+    const x = -L / 2 + L * i / NR, r = R * Math.sqrt(Math.max(0.02, 1 - Math.pow(Math.abs(2 * x / L), 6)));
+    for (let k = 0; k < SEG; k++) { const a = k / SEG * Math.PI * 2; V.push(x, R + Math.cos(a) * r, Math.sin(a) * r, 0, 0, 0, 1, 1, 1, 3); }
+  }
+  for (let i = 0; i < NR; i++) for (let k = 0; k < SEG; k++) {
+    const a = i * SEG + k, b = i * SEG + (k + 1) % SEG; I.push(a, b, b + SEG, a, b + SEG, a + SEG);
+  }
+  return finish(V, I);
+}
+function canMesh() { // a vintage whipped-cream can held upside down: nozzle tip at the origin, body above
+  const V = [], I = [], paint = hexLin('#EDE7DA'), white = hexLin('#FBFAF6'), metal = [0.66, 0.66, 0.66];
+  lathe(V, I, [{ y: 0, r: 0.013 }, { y: 0.02, r: 0.02 }, { y: 0.11, r: 0.024 }, { y: 0.135, r: 0.034 }], 18, white, 5, (i, a) => 1 + 0.12 * Math.cos(6 * a) * (i < 3 ? 1 : 0));
+  lathe(V, I, [{ y: 0.13, r: 0.045 }, { y: 0.15, r: 0.062 }, { y: 0.165, r: 0.066 }], 28, metal, 5);
+  lathe(V, I, [{ y: 0.16, r: 0.066 }, { y: 0.2, r: 0.11 }, { y: 0.235, r: 0.132 }, { y: 0.255, r: 0.14 }], 36, paint, 4);
+  lathe(V, I, [{ y: 0.25, r: 0.141 }, { y: 0.265, r: 0.146 }, { y: 0.28, r: 0.141 }], 36, metal, 5);
+  lathe(V, I, [{ y: 0.275, r: 0.14 }, { y: 0.86, r: 0.14 }], 48, paint, 8);
+  lathe(V, I, [{ y: 0.855, r: 0.141 }, { y: 0.87, r: 0.146 }, { y: 0.885, r: 0.136 }, { y: 0.89, r: 0.001 }], 36, metal, 5);
+  return finish(V, I);
+}
+function shakerMesh() { // a vintage bottle of sprinkles held upside down: blue screw cap at the origin
+  const V = [], I = [], cap = hexLin('#5B9BD5');
+  const sq = a => 1 / Math.pow(Math.pow(Math.abs(Math.cos(a)), 4) + Math.pow(Math.abs(Math.sin(a)), 4), 0.25);
+  lathe(V, I, [{ y: 0, r: 0.001 }, { y: 0, r: 0.074 }, { y: 0.006, r: 0.08 }, { y: 0.07, r: 0.08 }, { y: 0.076, r: 0.07 }], 36, cap, 7, (i, a) => 1 + (i > 1 && i < 4 ? 0.02 * Math.cos(40 * a) : 0));
+  const rings = [{ y: 0.074, r: 0.064, k: 0 }, { y: 0.1, r: 0.064, k: 0 }, { y: 0.14, r: 0.1, k: 0.6 }, { y: 0.175, r: 0.112, k: 1 }, { y: 0.52, r: 0.112, k: 1 }, { y: 0.55, r: 0.104, k: 1 }, { y: 0.56, r: 0.001, k: 1 }];
+  lathe(V, I, rings, 48, [1, 1, 1], 6, (i, a) => 1 + rings[i].k * (sq(a) - 1));
+  return finish(V, I);
+}
+function streamMesh() { // a thin unit column along -y, scaled to the spray length
+  const V = [], I = [];
+  lathe(V, I, [{ y: -1, r: 1 }, { y: 0, r: 0.7 }], 12, hexLin('#FBF7EE'), 0);
+  return finish(V, I);
+}
+
+// ── contact with the cake (each piece's resting shape placed by its rigid frame) or the table
+function landTest(p, r) {
+  if (p[1] <= r) return { floor: true };
+  for (const pc of pieces) {
+    const X = worldToRest(pc, p);
+    if (X[1] > TOP + r || X[1] < -r) continue;
+    const s2 = sampleGrid(pc.sdf, PG, X[0], X[2]);
+    if (s2 > r) continue;
+    let d = s2, face = 'side';
+    if (-X[1] > d) { d = -X[1]; face = 'bottom'; }
+    if (X[1] - TOP > d) { d = X[1] - TOP; face = 'top'; }
+    if (d >= r) continue;
+    let n;
+    if (face === 'top') { n = [0, 1, 0]; X[1] = TOP; }
+    else if (face === 'bottom') { n = [0, -1, 0]; X[1] = 0; }
+    else { const g = gradGrid(pc.sdf, PG, X[0], X[2]), gl = Math.hypot(g[0], g[1]) || 1; n = [g[0] / gl, 0, g[1] / gl]; X[0] -= n[0] * s2; X[2] -= n[2] * s2; }
+    return { piece: pc, X, n };
+  }
+  return null;
+}
+
+// ── topping records
+function canAdd(type) {
+  const big = toppings.filter(t => t.type !== 'sprinkles').length;
+  if (type === 'sprinkles' ? toppings.length - big < MAX_SPRINKLES : big < MAX_BIG) return true;
+  toast(type === 'sprinkles' ? 'That’s a lot of sprinkles.' : 'Leave some room for the jello.');
+  return false;
+}
+function attach(type, contact, extra) { // contact: { piece, X, n } on the cake, or { floor, p }
+  const t = { type, ang: rnd() * Math.PI * 2, born: simTime, s: 1, parent: null, ...extra };
+  if (contact.floor) { t.piece = null; t.wp = [contact.p[0], 0, contact.p[2]]; t.n = [0, 1, 0]; }
+  else { t.piece = contact.piece; t.X = contact.X; t.n = contact.n; t.emb = findTet(contact.piece.sim, contact.X[0], contact.X[1], contact.X[2]); }
+  toppings.push(t);
+  updateReadouts();
+  return t;
+}
+// World pose: surface point p, surface normal n, and the topping's own basis (bx, by, bz).
+function toppingPose(t) {
+  if (t.parent) {
+    const q = toppingPose(t.parent), k = CREAM_H * t.parent.s * growth(t.parent) * 0.92;
+    return { ...q, p: add(q.p, scale(q.by, k)) };
+  }
+  let p, R = null;
+  if (!t.piece) p = t.wp;
+  else { p = [0, 0, 0]; embedPos(t.piece.sim, t.emb, t.piece.sim.x, p, t.piece.R); R = t.piece.R; }
+  const rot = v => R ? mulR(R, v) : v, n = norm(rot(t.n));
+  if (t.ori) return { p, n, bx: rot(t.ori[0]), by: rot(t.ori[1]), bz: rot(t.ori[2]) };
+  const ref = Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0], tx0 = norm(cross(ref, n)), tz0 = cross(tx0, n);
+  const c = Math.cos(t.ang), s = Math.sin(t.ang), bx = add(scale(tx0, c), scale(tz0, s));
+  return { p, n, bx, by: n, bz: cross(bx, n) };
+}
+const growth = t => t.noGrow || reduceMotion.matches ? 1 : easeOut(clamp((simTime - t.born) / 0.3, 0, 1));
+function rotAxis(v, a, ang) { // Rodrigues
+  const c = Math.cos(ang), s = Math.sin(ang), k = cross(a, v), d = dot(a, v);
+  return [v[0] * c + k[0] * s + a[0] * d * (1 - c), v[1] * c + k[1] * s + a[1] * d * (1 - c), v[2] * c + k[2] * s + a[2] * d * (1 - c)];
+}
+
+// ── whipped cream: hold to spray; a dollop grows while you hold still, a line follows as you move
+function updateSpray(dt) {
+  deco.spraying = false;
+  if (!(deco.holding && ui.tool === 'decorate' && ui.topping === 'cream')) { deco.current = null; return; }
+  const h = deco.hover;
+  if (!h || !h.hit) return;
+  const rest = hitRest(h.hit), up = mulR(h.hit.piece.R, rest.n)[1];
+  if (up < 0.55) return;
+  deco.spraying = true;
+  const cur = deco.current && toppings.includes(deco.current) ? deco.current : null;
+  const curPos = cur && toppingPose(cur).p;
+  if (!cur || Math.hypot(curPos[0] - h.p[0], curPos[2] - h.p[2]) > 0.1) {
+    if (!canAdd('cream')) { deco.holding = false; return; }
+    deco.current = attach('cream', { piece: h.hit.piece, X: rest.X, n: rest.n }, { s: 0.42, noGrow: true });
+  } else cur.s = Math.min(1.35, cur.s + dt * 0.9);
+}
+
+// ── sprinkles: shaking the jar pours them out; each one falls and sticks where it lands
+function updateShaker(dt) {
+  deco.shake *= Math.pow(0.02, dt);
+  deco.tilt += (deco.tiltTarget - deco.tilt) * Math.min(1, dt * 12); deco.tiltTarget *= Math.pow(0.05, dt);
+  if (!(deco.holding && ui.tool === 'decorate' && ui.topping === 'sprinkles' && deco.hover)) return;
+  deco.emit += dt * (12 + Math.min(260, deco.shake * 0.35));
+  const P = shakerPos();
+  while (deco.emit >= 1) {
+    deco.emit--;
+    if (falling.length >= MAX_FALLING || !canAdd('sprinkles')) { deco.emit = 0; break; }
+    const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 0.06;
+    falling.push({ kind: 'sprinkle', p: [P[0] + Math.cos(a) * r, P[1] - 0.01, P[2] + Math.sin(a) * r],
+      v: [(rnd() - 0.5) * 1.3 - deco.tilt * 1.2, -0.3 - rnd() * 0.5, (rnd() - 0.5) * 1.3], col: SPRINKLE_COLORS[(rnd() * SPRINKLE_COLORS.length) | 0],
+      axis: norm([rnd() - 0.5, rnd() - 0.5, rnd() - 0.5]), spin: (rnd() - 0.5) * 30, ang: rnd() * 6 });
+  }
+}
+const shakerPos = () => deco.hover ? [deco.hover.p[0], deco.hover.p[1] + SHAKER_UP, deco.hover.p[2]] : [0, 2, 0];
+
+// ── cherries: drop from above; they stay upright in cream and topple over on bare jello
+function dropCherry() {
+  const h = deco.hover;
+  if (!h) return;
+  if (!canAdd('cherry')) return;
+  falling.push({ kind: 'cherry', p: [h.p[0], h.p[1] + CHERRY_DROP + CHERRY_R, h.p[2]], v: [0, 0, 0], tilt: 0, axis: null, landed: 0, still: 0 });
+}
+function cherryBasis(f) {
+  if (!f.axis) return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  return [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map(v => rotAxis(v, f.axis, f.tilt));
+}
+function creamUnder(c) { // a cream dollop that a falling cherry at c is touching
+  for (const t of toppings) {
+    if (t.type !== 'cream' || toppings.some(k => k.parent === t)) continue;
+    const q = toppingPose(t), h = CREAM_H * t.s * growth(t), top = add(q.p, scale(q.by, h));
+    const rel = sub(c, q.p), along = dot(rel, q.by), radial = Math.hypot(...sub(rel, scale(q.by, along)));
+    if (Math.hypot(...sub(c, top)) < CHERRY_R + 0.05 || (along > 0 && along < h + CHERRY_R && radial < 0.11 * CREAM_R * t.s + CHERRY_R * 0.5)) return t;
+  }
+  return null;
+}
+function updateFalling(dt) {
+  const keep = [];
+  for (const f of falling) {
+    f.v[1] -= GRAV * 0.7 * dt;
+    f.p = add(f.p, scale(f.v, dt));
+    if (f.kind === 'sprinkle') {
+      f.ang += f.spin * dt;
+      const c = landTest(f.p, 0.009 * SPRINKLE_K);
+      if (!c) { if (f.p[1] > -1) keep.push(f); continue; }
+      attach('sprinkles', c.floor ? { floor: true, p: f.p } : c, { col: f.col, s: 0.85 + rnd() * 0.3, noGrow: true });
+      continue;
+    }
+    // cherry
+    const R = CHERRY_R;
+    if (!f.axis) { const d = creamUnder(f.p); if (d) { attach('cherry', { floor: true, p: [0, 0, 0] }, { parent: d }); toppings[toppings.length - 1].piece = d.piece; continue; } }
+    const c = landTest(f.p, R);
+    if (c) {
+      const n = c.floor ? [0, 1, 0] : norm(mulR(c.piece.R, c.n));
+      // sit on the surface, bounce a little, keep some roll
+      const vn = dot(f.v, n);
+      if (vn < 0) f.v = sub(f.v, scale(n, vn * (f.landed ? 1 : 1.35)));
+      f.v = scale(f.v, 0.9);
+      if (!f.landed) {
+        f.landed = simTime;
+        const side = norm(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [Math.cos(rnd() * 6.3), 0, Math.sin(rnd() * 6.3)]));
+        f.axis = side;
+      }
+      if (c.floor) f.p[1] = Math.max(f.p[1], R);
+      else { const surf = restToWorld(c.piece, c.X); f.p = add(surf, scale(n, R)); }
+      f.contact = c;
+    }
+    if (f.axis) f.tilt = Math.min(1.3, f.tilt + dt * 4.5);
+    const speed = Math.hypot(...f.v);
+    f.still = speed < 0.25 && f.landed ? f.still + dt : 0;
+    if (f.landed && f.tilt >= 1.3 && f.still > 0.12 && f.contact) {
+      // settle: store the toppled orientation in the piece's resting frame so it rides the wobble
+      const B = cherryBasis(f), c2 = f.contact;
+      if (c2.floor) attach('cherry', { floor: true, p: f.p }, { ori: B, lie: true });
+      else attach('cherry', c2, { ori: B.map(v => mulRT(c2.piece.R, v)), lie: true });
+      continue;
+    }
+    if (f.p[1] > -1 && simTime - (f.landed || simTime) < 4) keep.push(f);
+  }
+  falling = keep;
+}
+function updateDecorate(dt) { updateSpray(dt); updateShaker(dt); updateFalling(dt); }
+
+// Resting-space point and outward normal of a pick hit.
+function hitRest(hit) {
+  const r = hit.piece.rend, I = r.idx, a = 3 * I[hit.tri], b = 3 * I[hit.tri + 1], c = 3 * I[hit.tri + 2], w0 = 1 - hit.u - hit.v, R = r.rest;
+  const X = [0, 1, 2].map(k => w0 * R[a + k] + hit.u * R[b + k] + hit.v * R[c + k]);
+  const n = norm(cross([R[b] - R[a], R[b + 1] - R[a + 1], R[b + 2] - R[a + 2]], [R[c] - R[a], R[c + 1] - R[a + 1], R[c + 2] - R[a + 2]]));
+  return { X, n };
+}
+function addTopping(hit, type) { // direct placement (test hook)
+  if (!canAdd(type)) return null;
+  const r = hitRest(hit);
+  return attach(type, { piece: hit.piece, X: r.X, n: r.n }, type === 'sprinkles' ? { col: SPRINKLE_COLORS[(rnd() * SPRINKLE_COLORS.length) | 0], noGrow: true } : {});
+}
+// When a piece is cut or stamped, each topping moves to the new piece it sits on (or is lost in the gap).
+function moveToppings(old, news) {
+  const gone = new Set();
+  for (const t of toppings) {
+    if (t.piece !== old || t.parent) continue;
+    let best = null, bd = 0.03;
+    for (const np of news) { const s = sampleGrid(np.sdf, PG, t.X[0], t.X[2]); if (s < bd) { bd = s; best = np; } }
+    if (best) { t.piece = best; t.emb = findTet(best.sim, t.X[0], t.X[1], t.X[2]); } else gone.add(t);
+  }
+  toppings = toppings.filter(t => !gone.has(t) && !(t.parent && gone.has(t.parent)));
+  for (const t of toppings) if (t.parent) t.piece = t.parent.piece;
+  falling = falling.filter(f => !f.contact || f.contact.floor || f.contact.piece !== old);
+}
+
+// ── drawing: every topping, falling bit and hand-held tool is an instance of a small mesh
+function drawToppings(pass) {
+  if (!decoGeo) return;
+  const groups = { cream: [], cherry: [], sprinkles: [], can: [], shaker: [], stream: [] };
+  const inst = (key, bx, by, bz, sx, sy, sz, P, col) => groups[key].push([bx, by, bz, sx, sy, sz, P, col]);
+  for (const t of toppings) {
+    if (t.piece && !pieces.includes(t.piece)) continue;
+    const q = toppingPose(t);
+    if (t.type === 'cream') { const g = growth(t); inst('cream', q.bx, q.by, q.bz, t.s * (0.55 + 0.45 * g), t.s * g, t.s * (0.55 + 0.45 * g), add(q.p, scale(q.by, -0.012)), null); }
+    else if (t.type === 'cherry') {
+      const origin = t.parent ? add(q.p, scale(q.by, -0.02)) : add(add(q.p, scale(q.n, CHERRY_R)), scale(q.by, -CHERRY_R));
+      inst('cherry', q.bx, q.by, q.bz, 1, 1, 1, origin, null);
+    } else inst('sprinkles', q.bx, q.by, q.bz, t.s, t.s, t.s, q.p, t.col);
+  }
+  for (const f of falling) {
+    if (f.kind === 'sprinkle') {
+      const bx = rotAxis([1, 0, 0], f.axis, f.ang), by = rotAxis([0, 1, 0], f.axis, f.ang), bz = rotAxis([0, 0, 1], f.axis, f.ang);
+      inst('sprinkles', bx, by, bz, 1, 1, 1, sub(f.p, scale(by, 0.009 * SPRINKLE_K)), f.col);
+    } else { const B = cherryBasis(f); inst('cherry', B[0], B[1], B[2], 1, 1, 1, sub(f.p, scale(B[1], CHERRY_R)), null); }
+  }
+  // the tool in your hand
+  const h = deco.hover;
+  if (ui.tool === 'decorate' && h && !anim) {
+    const f = cutterFrame();
+    if (ui.topping === 'cream') {
+      const jig = deco.spraying ? (rnd() - 0.5) * 0.006 : 0, tip = [h.p[0] + jig, h.p[1] + CAN_TIP, h.p[2]];
+      inst('can', f.right, [0, 1, 0], f.fwd, 1, 1, 1, tip, null);
+      if (deco.spraying) {
+        const cur = deco.current, top = cur ? add(toppingPose(cur).p, [0, CREAM_H * cur.s * 0.8, 0]) : h.p, len = Math.max(0.02, tip[1] - top[1]);
+        inst('stream', f.right, [0, 1, 0], f.fwd, 0.02, len, 0.02, tip, null);
+      }
+    } else if (ui.topping === 'sprinkles') {
+      const P = shakerPos(), ax = norm(sub(camEye(), cam.t));
+      inst('shaker', rotAxis(f.right, ax, deco.tilt), rotAxis([0, 1, 0], ax, deco.tilt), rotAxis(f.fwd, ax, deco.tilt), 1, 1, 1, P, null);
+    } else if (ui.topping === 'cherry' && !(drag && drag.moved)) {
+      inst('cherry', [1, 0, 0], [0, 1, 0], [0, 0, 1], 1, 1, 1, [h.p[0], h.p[1] + CHERRY_DROP, h.p[2]], null);
+    }
+  }
+  let n = 0;
+  const ranges = [];
+  for (const key in groups) {
+    const list = groups[key], first = n;
+    for (const [bx, by, bz, sx, sy, sz, P, col] of list) {
+      if (n * 20 >= instData.length) break;
+      instData.set([bx[0] * sx, bx[1] * sx, bx[2] * sx, 0, by[0] * sy, by[1] * sy, by[2] * sy, 0, bz[0] * sz, bz[1] * sz, bz[2] * sz, 0, P[0], P[1], P[2], 1], n * 20);
+      instData.set(col ? [col[0], col[1], col[2], 1] : [0, 0, 0, 0], n * 20 + 16);
+      n++;
+    }
+    if (n > first) ranges.push([decoGeo[key], first, n - first]);
+  }
+  if (!n) return;
+  device.queue.writeBuffer(instBuf, 0, instData, 0, n * 20);
+  pass.setPipeline(pipes.deco);
+  pass.setVertexBuffer(1, instBuf);
+  for (const [g, first, count] of ranges) { pass.setVertexBuffer(0, g.vb); pass.setIndexBuffer(g.ib, 'uint32'); pass.drawIndexed(g.n, count, 0, 0, first); }
+}
+
 // ─── WGSL ─────────────────────────────────────────────────────────────
 const WGSL = /* wgsl */`
 struct Globals {
@@ -1627,6 +1977,96 @@ struct TOut { @builtin(position) clip: vec4f, @location(0) wp: vec3f, @location(
   return vec4f(toSrgb(neutral(col)) + dither(in.clip.xy), 1.0);
 }
 
+// ── toppings (instanced): cream, cherries, sprinkles
+struct DIn {
+  @location(0) pos: vec3f, @location(1) nrm: vec3f, @location(2) col: vec3f, @location(3) mat: f32,
+  @location(4) m0: vec4f, @location(5) m1: vec4f, @location(6) m2: vec4f, @location(7) m3: vec4f, @location(8) tint: vec4f,
+};
+struct DOut { @builtin(position) clip: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) col: vec3f, @location(3) @interpolate(flat) mat: u32, @location(4) lp: vec3f, };
+@vertex fn vsDeco(v: DIn) -> DOut {
+  let M = mat4x4f(v.m0, v.m1, v.m2, v.m3);
+  let w = M * vec4f(v.pos, 1.0);
+  var o: DOut;
+  o.clip = G.viewProj * w; o.wp = w.xyz; o.n = (M * vec4f(v.nrm, 0.0)).xyz;
+  o.col = select(v.col, v.tint.rgb, v.tint.a > 0.5); o.mat = u32(v.mat + 0.5); o.lp = v.pos;
+  return o;
+}
+@fragment fn fsDeco(in: DOut) -> @location(0) vec4f {
+  let V = normalize(G.eye.xyz - in.wp);
+  var N = normalize(in.n);
+  if (dot(N, V) < 0.0) { N = -N; }
+  let L = normalize(KEY);
+  let nl = max(dot(N, L), 0.0);
+  let cv = clamp(dot(N, V), 0.0, 1.0);
+  let fres = 0.04 + 0.96 * pow(1.0 - cv, 5.0);
+  var col: vec3f;
+  if (in.mat == 0u) {        // whipped cream: soft, wrapped light, a little sheen
+    col = in.col * (0.55 + 0.5 * (nl * 0.7 + 0.3)) + vec3f(ggx(N, V, L, 0.5) * 0.35) + in.col * pow(1.0 - cv, 3.0) * 0.15;
+  } else if (in.mat == 1u) { // maraschino cherry: deep, glossy, lit from inside at the rim
+    col = in.col * (0.42 + 0.62 * nl) + in.col * pow(1.0 - cv, 2.0) * 0.45 + vec3f(ggx(N, V, L, 0.07) * 5.0 + ggx(N, V, normalize(RIM), 0.12) * 1.6) + env(reflect(-V, N)) * fres * 0.7;
+  } else if (in.mat == 2u) { // stem
+    col = in.col * (0.4 + 0.6 * nl);
+  } else if (in.mat == 4u) { // can paint: satin
+    col = in.col * (0.45 + 0.6 * nl) + vec3f(ggx(N, V, L, 0.32) * 0.9) + env(reflect(-V, N)) * fres * 0.4;
+  } else if (in.mat == 5u) { // polished metal / glossy nozzle
+    col = env(reflect(-V, N)) * in.col * 0.85 + in.col * 0.12 * nl + vec3f(ggx(N, V, L, 0.18) * 1.8);
+  } else if (in.mat == 6u && in.lp.y > 0.24 && in.lp.y < 0.46 && in.lp.z < -0.06) { // bottle label
+    let v = (0.46 - in.lp.y) / 0.22;             // 0 at the top of the label (the bottle is upside down)
+    let u = in.lp.x / 0.1;
+    var lc = vec3f(0.93, 0.87, 0.74);
+    if (v < 0.3) {
+      lc = vec3f(0.93, 0.87, 0.74);
+      let txt = fract(u * 7.0 + 0.25) < 0.62 && abs(v - 0.16) < 0.07 && abs(u) < 0.62;
+      lc = select(lc, vec3f(0.78, 0.12, 0.12), txt);
+    } else if (v < 0.36) { lc = vec3f(0.78, 0.12, 0.12); }
+    else {
+      let d = fract(vec2f(u * 5.0, v * 9.0)) - 0.5;
+      lc = select(vec3f(0.36, 0.72, 0.76), vec3f(0.93, 0.87, 0.74), length(d) < 0.22);
+      let blob = length(vec2f(u * 1.2, (v - 0.72) * 2.0)) < 0.34;
+      lc = select(lc, vec3f(0.93, 0.87, 0.74), blob);
+    }
+    col = lc * (0.45 + 0.55 * nl) + vec3f(ggx(N, V, L, 0.2) * 1.2) + env(reflect(-V, N)) * fres * 0.5;
+  } else if (in.mat == 8u) { // whipped-cream can body with a round sunburst label
+    let ang = atan2(in.lp.z, in.lp.x) + 1.5708;   // 0 faces the viewer
+    let u = ang * 0.14;
+    let v = -(in.lp.y - 0.57);   // label reads the right way up when the can is inverted
+    let d = length(vec2f(u, v));
+    let ink = vec3f(0.23, 0.22, 0.21);
+    var lc = in.col * (0.96 + 0.04 * sin(in.lp.y * 30.0));
+    if (d < 0.155) {
+      let rays = fract(atan2(v, u) / 6.2832 * 36.0) < 0.5;
+      lc = select(lc, mix(lc, ink, 0.55), rays && d > 0.045);
+      if (abs(d - 0.15) < 0.005 || abs(d - 0.135) < 0.0025) { lc = ink; }
+      if (abs(v) < 0.036 && abs(u) < 0.17) {
+        lc = in.col;
+        if (abs(abs(v) - 0.032) < 0.003) { lc = ink; }
+        if (abs(v) < 0.013 && abs(u) < 0.115 && fract(u * 62.0 + 0.3) < 0.62) { lc = ink; }
+      }
+      if (v > 0.05 && v < 0.07 && abs(u) < 0.06 && fract(u * 90.0) < 0.5) { lc = mix(lc, ink, 0.8); }
+    }
+    col = lc * (0.45 + 0.6 * nl) + vec3f(ggx(N, V, L, 0.3) * 1.0) + env(reflect(-V, N)) * fres * 0.4;
+  } else if (in.mat == 6u) { // glass bottle; sprinkles settle toward the cap
+    if (in.lp.y > 0.43) {
+      col = vec3f(0.86, 0.87, 0.86) * (0.45 + 0.3 * nl) + env(reflect(-V, N)) * fres * 1.3 + vec3f(ggx(N, V, L, 0.05) * 3.0);
+      return vec4f(toSrgb(neutral(col)) + dither(in.clip.xy), 1.0);
+    }
+    let cell = floor(in.lp * vec3f(70.0, 42.0, 70.0));
+    let h = hash3(cell);
+    var fill = vec3f(0.95, 0.93, 0.88);
+    if (h < 0.16) { fill = vec3f(1.0, 0.1, 0.3); } else if (h < 0.3) { fill = vec3f(1.0, 0.65, 0.05); } else if (h < 0.44) { fill = vec3f(0.05, 0.62, 0.45); }
+    else if (h < 0.58) { fill = vec3f(0.1, 0.27, 0.85); } else if (h < 0.7) { fill = vec3f(0.45, 0.28, 1.0); } else if (h < 0.8) { fill = vec3f(1.0, 0.3, 0.06); }
+    col = fill * (0.35 + 0.5 * nl) + env(reflect(-V, N)) * fres * 1.2 + vec3f(ggx(N, V, L, 0.06) * 3.0 + ggx(N, V, normalize(RIM), 0.1) * 1.0);
+  } else if (in.mat == 7u) { // bottle cap, with a ring of holes on its face
+    let r = length(in.lp.xz);
+    let ang = atan2(in.lp.z, in.lp.x);
+    let hole = in.lp.y < 0.004 && r > 0.02 && r < 0.075 && fract(ang / 6.2832 * 12.0 + select(0.0, 0.5, r > 0.05)) < 0.35 && fract(r * 40.0) < 0.5;
+    col = select(in.col * (0.45 + 0.55 * nl) + vec3f(ggx(N, V, L, 0.3) * 0.8), vec3f(0.08), hole);
+  } else {                   // sprinkles: candy-coated
+    col = in.col * (0.45 + 0.6 * nl) + vec3f(ggx(N, V, L, 0.28) * 0.7) + env(reflect(-V, N)) * fres * 0.25;
+  }
+  return vec4f(toSrgb(neutral(col)) + dither(in.clip.xy), 1.0);
+}
+
 // ── wireframe
 @vertex fn vsWire(v: JIn) -> @builtin(position) vec4f { return G.viewProj * vec4f(v.pos + v.nrm * 0.003, 1.0); }
 @fragment fn fsWire() -> @location(0) vec4f { return vec4f(0.12, 0.11, 0.1, 0.35); }
@@ -1687,6 +2127,10 @@ async function initGPU() {
   pipes.blit = mk(lay01, 'vsFull', 'fsBlit', format, 4, [], depthOff);
   pipes.tool = mk(lay0, 'vsTool', 'fsTool', format, 4, jelloLayout, depthOn);
   pipes.jello = mk(lay01, 'vsJello', 'fsJello', format, 4, jelloLayout, depthOn, { cull: 'back' });
+  pipes.deco = mk(lay0, 'vsDeco', 'fsDeco', format, 4, [...jelloLayout, { arrayStride: 80, stepMode: 'instance', attributes: [
+    { shaderLocation: 4, offset: 0, format: 'float32x4' }, { shaderLocation: 5, offset: 16, format: 'float32x4' },
+    { shaderLocation: 6, offset: 32, format: 'float32x4' }, { shaderLocation: 7, offset: 48, format: 'float32x4' },
+    { shaderLocation: 8, offset: 64, format: 'float32x4' }] }], depthOn);
   pipes.wire = mk(lay0, 'vsWire', 'fsWire', format, 4, jelloLayout, { format: 'depth24plus', depthWriteEnabled: false, depthCompare: 'less-equal' },
     { topology: 'line-list', blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } });
 
@@ -1702,6 +2146,8 @@ async function initGPU() {
   if (err) throw new GpuError('WebGPU setup failed: ' + err.message);
 
   knifeGeo = uploadGeo(knifeMesh());
+  decoGeo = { cream: uploadGeo(creamMesh()), cherry: uploadGeo(cherryMesh()), sprinkles: uploadGeo(sprinkleMesh()), can: uploadGeo(canMesh()), shaker: uploadGeo(shakerMesh()), stream: uploadGeo(streamMesh()) };
+  instBuf = device.createBuffer({ size: instData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
   cutterGeo = cutterShapes.map((_, k) => uploadGeo(cutterMesh(k)));
   vBuf = null; geomDirty = true;
   for (const p of pieces) p.sdfDirty = true;
@@ -1838,7 +2284,7 @@ function pick(ro, rd) {
       const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x;
       const v = (rd[0] * qx + rd[1] * qy + rd[2] * qz) * id; if (v < 0 || u + v > 1) continue;
       const d = (e2x * qx + e2y * qy + e2z * qz) * id;
-      if (d > 0 && d < best) { best = d; hit = { piece: pc, p: add(ro, scale(rd, d)), t: d }; }
+      if (d > 0 && d < best) { best = d; hit = { piece: pc, p: add(ro, scale(rd, d)), t: d, tri: t, u, v }; }
     }
   }
   return hit;
@@ -1918,6 +2364,7 @@ function render() {
   pm.setPipeline(pipes.blit); pm.draw(3);
   pm.setPipeline(pipes.tool); drawTools(pm);
   pm.setPipeline(pipes.jello); pm.setVertexBuffer(0, vBuf); pm.setIndexBuffer(iBuf, 'uint32'); pm.drawIndexed(nIdx);
+  drawToppings(pm);
   if (ui.mesh) { pm.setPipeline(pipes.wire); pm.setVertexBuffer(0, vBuf); pm.setIndexBuffer(eBuf, 'uint32'); pm.drawIndexed(nEdge); }
   pm.end();
   device.queue.submit([enc.finish()]);
@@ -1931,6 +2378,11 @@ const localPt = e => { const r = canvas.getBoundingClientRect(); return { x: e.c
 
 function updateHover(m) {
   if (anim) return;
+  if (ui.tool === 'decorate') {
+    const { o, d } = screenRay(m.x, m.y), hit = pick(o, d), p = hit ? hit.p : rayPlaneY(o, d, 0);
+    deco.hover = p ? { p, hit } : null; hover = deco.hover;
+    return;
+  }
   if (cutterParked) {
     if (Math.hypot(m.x - cutterParked.x, m.y - cutterParked.y) < 10) return;
     cutterParked = null;
@@ -1959,6 +2411,7 @@ canvas.addEventListener('pointerdown', e => {
     const { o, d } = screenRay(m.x, m.y), h = pick(o, d);
     drag.mode = h && startGrab(h, d) ? 'grab' : 'orbit';
   } else if (ui.tool === 'knife') { drag.mode = 'stroke'; stroke = [m]; strokeLine.setAttribute('points', `${m.x},${m.y}`); }
+  else if (ui.tool === 'decorate' && ui.topping !== 'cherry') { drag.mode = ui.topping === 'cream' ? 'spray' : 'shake'; updateHover(m); deco.holding = true; }
   else drag.mode = 'click';
 });
 canvas.addEventListener('pointermove', e => {
@@ -1984,6 +2437,9 @@ canvas.addEventListener('pointermove', e => {
       let top = 0; for (const h of hits) top = Math.max(top, h.p[1]);
       knife.u = u; knife.M = [(A[0] + B[0]) / 2, top + 0.06, (A[2] + B[2]) / 2];
     }
+  } else if (drag.mode === 'spray' || drag.mode === 'shake') {
+    updateHover(m);
+    deco.shake += Math.hypot(dx, dy) * 6; deco.tiltTarget = clamp(deco.tiltTarget - dx * 0.02, -0.7, 0.7);
   } else if (drag.mode === 'click') updateHover(m);
 });
 function strokeHits(pts) {
@@ -1995,14 +2451,15 @@ function strokeHits(pts) {
 canvas.addEventListener('pointerup', e => {
   if (!drag) return;
   const m = localPt(e), d = drag; drag = null;
+  deco.holding = false;
   if (d.mode === 'grab') endGrab();
-  else if (d.mode === 'click' && !d.moved) doStamp(m);
+  else if (d.mode === 'click' && !d.moved) { if (ui.tool === 'decorate') { updateHover(m); dropCherry(); } else doStamp(m); }
   else if (d.mode === 'stroke') { finishStroke(); strokeLine.setAttribute('points', ''); }
   updateHover(m);
 });
-canvas.addEventListener('pointercancel', () => { if (drag && drag.mode === 'grab') endGrab(); drag = null; strokeLine.setAttribute('points', ''); });
+canvas.addEventListener('pointercancel', () => { deco.holding = false; if (drag && drag.mode === 'grab') endGrab(); drag = null; strokeLine.setAttribute('points', ''); });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('pointerleave', () => { if (!drag) hover = null; });
+canvas.addEventListener('pointerleave', () => { if (!drag) { hover = null; deco.hover = null; } });
 canvas.addEventListener('dblclick', () => { Object.assign(cam, { yaw: 0.52, pitch: 0.62, dist: 8.6 }); });
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
@@ -2070,13 +2527,21 @@ $('#flav').addEventListener('click', e => { const c = e.target.closest('.card');
 function setTool(t) {
   ui.tool = t; if (grab) endGrab();
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  $('#hint').textContent = HINTS[t];
+  $('#hint').textContent = t === 'decorate' ? DECO_HINTS[ui.topping] : HINTS[t];
   $('#shapes').classList.toggle('dim', t !== 'cutter');
+  $('#toppings').classList.toggle('dim', t !== 'decorate');
   stage.dataset.tool = t;
   cutterParked = null;
   updateHover(lastPointer);
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) setTool(b.dataset.t); });
+function setTopping(k) {
+  ui.topping = k;
+  document.querySelectorAll('#topPills .pill').forEach(b => b.classList.toggle('on', b.dataset.p === k));
+  if (ui.tool === 'decorate') $('#hint').textContent = DECO_HINTS[k];
+}
+$('#topPills').addEventListener('click', e => { const b = e.target.closest('.pill'); if (b) { setTopping(b.dataset.p); if (ui.tool !== 'decorate') setTool('decorate'); } });
+$('#bClearTop').addEventListener('click', () => { toppings = []; falling = []; deco.current = null; updateReadouts(); });
 function setShape(s) {
   ui.shape = s;
   document.querySelectorAll('#shapePills .pill').forEach(b => b.classList.toggle('on', +b.dataset.s === s));
@@ -2095,7 +2560,7 @@ function cubesExposed() {
   for (const k of cubes) for (const pc of pieces) if (Math.abs(sampleGrid(pc.sdf, PG, k.c[0], k.c[2])) < k.h * 1.1) n++;
   return n;
 }
-function updateReadouts() { $('#rPieces').textContent = pieces.length; $('#rCubes').textContent = cubesExposed(); }
+function updateReadouts() { $('#rPieces').textContent = pieces.length; $('#rCubes').textContent = cubesExposed(); $('#rToppings').textContent = toppings.length; }
 
 // ─── Screens ──────────────────────────────────────────────────────────
 const title = $('#title');
@@ -2142,7 +2607,9 @@ addEventListener('keydown', e => {
   else if (k === 'h') setTool('hand');
   else if (k === 'k') setTool('knife');
   else if (k === 'c') setTool('cutter');
-  else if ('1234'.includes(k) && k.length === 1) { setShape(+k - 1); if (ui.tool !== 'cutter') setTool('cutter'); }
+  else if (k === 'd') setTool('decorate');
+  else if ('123'.includes(k) && k.length === 1 && ui.tool === 'decorate') setTopping(['cream', 'sprinkles', 'cherry'][+k - 1]);
+  else if ('1234'.includes(k) && k.length === 1 && ui.tool !== 'decorate') { setShape(+k - 1); if (ui.tool !== 'cutter') setTool('cutter'); }
 });
 function setStatus(s) { $('#status').textContent = s; }
 function showNoGPU(msg) {
@@ -2178,7 +2645,11 @@ window.jello = {
   planStamp: (x, z, shape = ui.shape) => { setShape(shape); const f = cutterFrame(); return planStamp([x, 0, z], f.right, f.fwd); }, startStamp,
   advance(seconds) { const n = Math.round(seconds / DT); for (let i = 0; i < n; i++) step(); updateCamera(seconds); render(); },
   stats: () => ({ pieces: pieces.length, cubesExposed: cubesExposed(), anim: anim && anim.kind }),
-  showScreen, setTool, setFlavour, nudge, reset: resetCake,
+  showScreen, setTool, setFlavour, setTopping, nudge, reset: resetCake,
+  decorate: (x, z, type = ui.topping) => { const h = pick([x, 5, z], [0, -1, 0]); return h ? addTopping(h, type) : null; },
+  get toppings() { return toppings.length; }, get falling() { return falling.length; }, toppingList: () => toppings,
+  hoverAt: (x, z) => { const h = pick([x, 5, z], [0, -1, 0]); deco.hover = { p: h ? h.p : [x, 0, z], hit: h }; }, dropCherry,
+  hold: on => { deco.holding = on; }, shake: amount => { deco.shake += amount; },
   get pieces() { return pieces; },
 };
 
