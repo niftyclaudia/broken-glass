@@ -730,7 +730,9 @@ function buildRender(sdf, loops, sim) {
     const f = findTet(sim, V[6 * v], V[6 * v + 1], V[6 * v + 2]);
     et[v] = f.t; ew.set(f.w, 4 * v); eo.set(f.o, 3 * v);
   }
-  return { nv, rest, idx: new Uint32Array(I), et, ew, eo };
+  const walls = [];
+  for (let v = 2 * P.length; v < nv; v += 2) walls.push(v);
+  return { nv, rest, idx: new Uint32Array(I), et, ew, eo, walls: new Int32Array(walls) };
 }
 
 let pieceSerial = 0;
@@ -979,6 +981,32 @@ function collidePieces() {
     const A = bbox[a], B = bbox[b];
     if (A[0] > B[3] || B[0] > A[3] || A[1] > B[4] || B[1] > A[4] || A[2] > B[5] || B[2] > A[5]) continue;
     pushOut(pieces[a], pieces[b], B);
+    pushOutSurface(pieces[a], pieces[b], B);
+  }
+}
+// The visible surface is finer than the soft body, so also test wall points of piece a against
+// piece b and push the tet each one is embedded in; this stops edges sliding into a neighbour.
+function pushOutSurface(pa, pb, bb) {
+  const r = pa.rend, x = pa.sim.x, T = pa.sim.tets, Ra = pa.R, R = pb.R, c = pb.c, C = pb.C;
+  for (const v of r.walls) {
+    const t4 = r.et[v] * 4, w = r.ew, o = 4 * v, e = 3 * v;
+    let px = 0, py = 0, pz = 0;
+    for (let k = 0; k < 4; k++) { const j = T[t4 + k] * 3, wk = w[o + k]; px += wk * x[j]; py += wk * x[j + 1]; pz += wk * x[j + 2]; }
+    const ox = r.eo[e], oy = r.eo[e + 1], oz = r.eo[e + 2];
+    px += Ra[0] * ox + Ra[3] * oy + Ra[6] * oz; py += Ra[1] * ox + Ra[4] * oy + Ra[7] * oz; pz += Ra[2] * ox + Ra[5] * oy + Ra[8] * oz;
+    if (px < bb[0] || px > bb[3] || py < bb[1] || py > bb[4] || pz < bb[2] || pz > bb[5]) continue;
+    const dx = px - c[0], dy = py - c[1], dz = pz - c[2];
+    const X = R[0] * dx + R[1] * dy + R[2] * dz + C[0], Y = R[3] * dx + R[4] * dy + R[5] * dz + C[1], Z = R[6] * dx + R[7] * dy + R[8] * dz + C[2];
+    if (Y < -CONTACT || Y > TOP + CONTACT) continue;
+    const s2 = sampleGrid(pb.sdf, PG, X, Z);
+    if (s2 >= CONTACT) continue;
+    let d = s2, nx = 0, ny = 0, nz = 0;
+    if (-Y > d) { d = -Y; ny = -1; }
+    if (Y - TOP > d) { d = Y - TOP; ny = 1; }
+    if (ny === 0) { const g = gradGrid(pb.sdf, PG, X, Z), gl = Math.hypot(g[0], g[1]) || 1; nx = g[0] / gl; nz = g[1] / gl; }
+    const push = Math.min(0.02, (CONTACT - d) * 0.5);
+    const ux = R[0] * nx + R[3] * ny + R[6] * nz, uy = R[1] * nx + R[4] * ny + R[7] * nz, uz = R[2] * nx + R[5] * ny + R[8] * nz;
+    for (let k = 0; k < 4; k++) { const j = T[t4 + k] * 3, wk = w[o + k] * push; x[j] += ux * wk; x[j + 1] += uy * wk; x[j + 2] += uz * wk; }
   }
 }
 function pushOut(pa, pb, bb) {
@@ -1598,7 +1626,7 @@ function serve() {
   share.snap = served.map(pc => ({ pc, x: new Float32Array(pc.sim.x), q: new Float64Array(pc.q) }));
   // plate them side by side where they fit; only stack when the dish is full
   const top = dishTop() - 0.1, dishR = dishReach() - 0.2, placed = [];
-  const footprint = pc => { let r = 0; const x = pc.sim.x; for (let i = 0; i < x.length; i += 3) r = Math.max(r, Math.hypot(x[i] - pc.c[0], x[i + 2] - pc.c[2])); return r * 0.8; };
+  const footprint = pc => { let r = 0; const x = pc.sim.x; for (let i = 0; i < x.length; i += 3) r = Math.max(r, Math.hypot(x[i] - pc.c[0], x[i + 2] - pc.c[2])); return r * 0.92; };
   share.carry = served.map((pc, i) => {
     const r = footprint(pc);
     let spot = null;
@@ -1606,7 +1634,7 @@ function serve() {
       const d = ring * 0.18, a = k / Math.max(1, ring * 6) * Math.PI * 2 + ring;
       const q = [Math.cos(a) * d, Math.sin(a) * d];
       if (Math.hypot(q[0], q[1]) + r * 0.6 > dishR && placed.length) continue;
-      if (placed.every(o => Math.hypot(q[0] - o.q[0], q[1] - o.q[1]) > (r + o.r) * 0.85)) spot = q;
+      if (placed.every(o => Math.hypot(q[0] - o.q[0], q[1] - o.q[1]) > r + o.r + 0.06)) spot = q;
     }
     let lift = 0;
     if (!spot) { spot = [(i % 2 ? 0.12 : -0.12), 0]; lift = 0.55 * placed.filter(o => Math.hypot(o.q[0] - spot[0], o.q[1] - spot[1]) < r + o.r).length; }
