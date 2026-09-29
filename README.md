@@ -1,14 +1,14 @@
 # Broken Glass
 
+**▶ Play it live: [niftyclaudia.github.io/broken-glass](https://niftyclaudia.github.io/broken-glass/)** (needs a browser with WebGPU: recent Chrome, Edge or Safari)
+
 An interactive, physically simulated 90s "broken glass" jello cake: jewel-coloured jello cubes set in a creamy condensed-milk layer on a graham-cracker crust. Wobble it, slice it with a chef's knife, stamp shapes out with Jiggler cutters, decorate it with whipped cream, sprinkles and cherries, then serve it on a dish and send someone a little video of it wobbling.
 
 A single self-contained HTML file. The soft-body physics runs in JavaScript; rendering is WebGPU + WGSL.
 
 ## Run it
 
-**Play it:** https://niftyclaudia.github.io/broken-glass/
-
-Or open `index.html` locally in a browser with WebGPU (recent Chrome or Edge, or Safari 26+). No build step and no dependencies; the only external request is the Instrument Serif font from Google Fonts, with a system-font fallback.
+Open the [live link](https://niftyclaudia.github.io/broken-glass/), or open `index.html` locally in a browser with WebGPU (recent Chrome or Edge, or Safari 26+). No build step and no dependencies; the only external request is the Instrument Serif font from Google Fonts, with a system-font fallback.
 
 If a browser blocks it from `file://`, serve the folder locally:
 
