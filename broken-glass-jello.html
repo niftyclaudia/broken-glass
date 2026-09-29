@@ -1698,8 +1698,6 @@ function drawCard() { // composite the live canvas into the portrait card being 
   c.font = 'italic 400 36px "Instrument Serif", Georgia, serif';
   const lines = wrapText(c, r.note || 'Made you a little something.', W2 - 120);
   lines.forEach((l, i) => c.fillText(l, W2 / 2, y0 + size + 62 + i * 42));
-  c.font = '500 14px "SF Mono", Menlo, monospace'; c.fillStyle = '#6B655C';
-  c.fillText('MATERIAL STUDIES · NO. 012 · SERVED ON A ' + DISHES[dish].name.toUpperCase(), W2 / 2, H2 - 32);
 }
 function finishRecording(blob) {
   const r = recording; recording = null;
