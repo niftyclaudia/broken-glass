@@ -1,6 +1,6 @@
 # Broken Glass
 
-An interactive, physically simulated 90s "broken glass" jello cake: jewel-coloured jello cubes set in a creamy condensed-milk layer on a graham-cracker crust. Wobble it, slice it with a cake knife, and stamp shapes out with Jiggler cutters.
+An interactive, physically simulated 90s "broken glass" jello cake: jewel-coloured jello cubes set in a creamy condensed-milk layer on a graham-cracker crust. Wobble it, slice it with a chef's knife, stamp shapes out with Jiggler cutters, and decorate it with whipped cream, sprinkles and cherries.
 
 A single self-contained HTML file. The soft-body physics runs in JavaScript; rendering is WebGPU + WGSL.
 
@@ -20,8 +20,9 @@ Then open <http://localhost:8000/broken-glass-jello.html>.
 
 | Key | Action |
 | --- | --- |
-| H / K / C | Hand, knife, cutter |
+| H / K / C / D | Hand, knife, cutter, decorate |
 | 1–4 | Cutter shape: star, heart, dino, bolt |
+| 1–3 (while decorating) | Topping: whipped cream, sprinkles, cherry |
 | Space | Pause |
 | N | Give it a nudge |
 | R | Reset |
@@ -30,6 +31,11 @@ Then open <http://localhost:8000/broken-glass-jello.html>.
 - **Hand:** drag the cake to pull and wobble it. The mouse wheel twists what you're holding.
 - **Knife:** drag across the cake to slice it.
 - **Cutter:** click a flat piece to stamp a shape.
+- **Decorate:**
+  - *Whipped cream:* hold to spray from the can. A dollop grows while you hold still; move while holding to pipe a line.
+  - *Cherry:* click to drop one. It stays upright on cream and topples onto its side on bare jello.
+  - *Sprinkles:* hold and shake the jar. The faster you shake, the more fall, and they stick wherever they land, table included.
+  - Toppings ride the wobble and stay with their piece when you cut or stamp it.
 - Drag on empty space (or right-drag) to orbit. The wheel zooms, and double-click resets the camera.
 
 ## How it works
@@ -40,7 +46,7 @@ Then open <http://localhost:8000/broken-glass-jello.html>.
 
 ## Test hook
 
-`window.jello` exposes `sim`, `camera`, `pick`, `planCut`/`startCut`, `planStamp`/`startStamp`, `advance(seconds)`, `stats()` and `showScreen('hero' | 'workspace')`, so animations can be stepped and screenshotted.
+`window.jello` exposes `sim`, `camera`, `pick`, `planCut`/`startCut`, `planStamp`/`startStamp`, `decorate(x, z, type)`, `advance(seconds)`, `stats()` and `showScreen('hero' | 'workspace')`, so animations can be stepped and screenshotted.
 
 ## Docs
 
@@ -49,7 +55,6 @@ Then open <http://localhost:8000/broken-glass-jello.html>.
 
 ## Next
 
-- **Decorate tool:** whipped cream, rainbow sprinkles and maraschino cherries that ride along with the wobble.
 - Shorten the pause when a cut or stamp is committed.
 - Softer shadows with proper contact, and bevelled top edges.
 - Touch gestures: pinch to zoom and two-finger twist.
